@@ -1,0 +1,46 @@
+import { Suspense } from 'react'
+import { createClient } from '@/utils/supabase/server'
+import { AddTeacherDialog } from '@/components/admin/add-teacher-dialog'
+import { UsersTable } from '@/components/admin/users-table'
+import { PageContainer } from '@/components/layout/page-container'
+import { PageHeader } from '@/components/layout/page-header'
+import { Section } from '@/components/layout/section'
+import { TableSkeleton } from '@/components/skeletons/table-skeleton'
+
+async function UsersTableLoader() {
+  const supabase = await createClient()
+
+  // Fetch all profiles
+  const { data: users, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 bg-red-50 rounded-md border border-red-200">
+        Error loading users: {error.message}
+      </div>
+    )
+  }
+
+  return <UsersTable users={users || []} />
+}
+
+export default function ManageUsersPage() {
+  return (
+    <PageContainer className="animate-in fade-in duration-500">
+      <PageHeader
+        title="Manage Users"
+        description="View and manage admin and teacher accounts."
+        action={<AddTeacherDialog />}
+      />
+
+      <Section>
+        <Suspense fallback={<TableSkeleton />}>
+          <UsersTableLoader />
+        </Suspense>
+      </Section>
+    </PageContainer>
+  )
+}
