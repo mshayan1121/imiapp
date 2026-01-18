@@ -8,9 +8,17 @@ interface StatCardProps {
   icon: LucideIcon
   description?: string
   className?: string
+  valueClassName?: string
 }
 
-export function StatCard({ title, value, icon: Icon, description, className }: StatCardProps) {
+export function StatCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  description, 
+  className,
+  valueClassName
+}: StatCardProps) {
   return (
     <Card
       className={cn(
@@ -21,7 +29,7 @@ export function StatCard({ title, value, icon: Icon, description, className }: S
       <div className="flex flex-col space-y-2">
         <p className="text-sm font-medium text-gray-600">{title}</p>
         <div className="flex items-baseline space-x-2">
-          <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{value}</h3>
+          <h3 className={cn("text-3xl font-bold text-gray-900 tracking-tight", valueClassName)}>{value}</h3>
         </div>
         {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
       </div>

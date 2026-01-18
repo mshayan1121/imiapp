@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { PageContainer } from '@/components/layout/page-container'
 import { Section } from '@/components/layout/section'
@@ -31,6 +32,7 @@ export function TeacherDirectoryClient({
   initialData,
   filterOptions,
 }: TeacherDirectoryClientProps) {
+  const router = useRouter()
   const [students, setStudents] = useState<StudentWithStats[]>(initialData.students)
   const [totalCount, setTotalCount] = useState(initialData.count)
   const [loading, setLoading] = useState(false)

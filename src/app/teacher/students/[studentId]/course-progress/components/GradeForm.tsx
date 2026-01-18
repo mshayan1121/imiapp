@@ -29,8 +29,8 @@ import { AlertTriangle, CheckCircle } from 'lucide-react'
 const formSchema = z.object({
   work_type: z.enum(['classwork', 'homework']),
   work_subtype: z.enum(['worksheet', 'pastpaper']),
-  marks_obtained: z.coerce.number().min(0),
-  total_marks: z.coerce.number().min(1),
+  marks_obtained: z.number().min(0),
+  total_marks: z.number().min(1),
   assessed_date: z.date(),
   notes: z.string().optional(),
 })
@@ -236,7 +236,12 @@ export function GradeForm({
               <FormItem>
                 <FormLabel>Marks Obtained</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.5" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.5" 
+                    {...field} 
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -250,7 +255,11 @@ export function GradeForm({
               <FormItem>
                 <FormLabel>Total Marks</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

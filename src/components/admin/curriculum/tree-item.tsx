@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, ChevronDown, GraduationCap, FileText, BookOpen, Book, FileEdit, Star, Plus, Edit2, Trash2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, GraduationCap, FileText, BookOpen, Book, FileEdit, Star, Plus, Edit2, Trash2, LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,12 +22,13 @@ interface TreeItemProps {
   children?: React.ReactNode
 }
 
-const levelIcons = {
+const levelIcons: Record<CurriculumLevel, LucideIcon> = {
   qualification: GraduationCap,
   board: FileText,
   subject: BookOpen,
   topic: Book,
   subtopic: FileEdit,
+  course: Star,
 }
 
 export function TreeItem({

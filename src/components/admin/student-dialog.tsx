@@ -30,8 +30,8 @@ interface StudentDialogProps {
   student?: {
     id: string
     name: string
-    year_group: string
-    school: string
+    year_group?: string
+    school?: string
   }
   trigger?: React.ReactNode
 }

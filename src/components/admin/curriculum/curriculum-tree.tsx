@@ -104,17 +104,15 @@ export function CurriculumTree({
     if (!searchTerm) return treeData
 
     const filterNodes = (nodes: CurriculumItem[]): CurriculumItem[] => {
-      return nodes
-        .map((node) => {
-          const matchingChildren = node.children ? filterNodes(node.children) : []
-          const isMatch = node.name.toLowerCase().includes(searchTerm.toLowerCase())
+      return nodes.reduce<CurriculumItem[]>((acc, node) => {
+        const matchingChildren = node.children ? filterNodes(node.children) : []
+        const isMatch = node.name.toLowerCase().includes(searchTerm.toLowerCase())
 
-          if (isMatch || matchingChildren.length > 0) {
-            return { ...node, children: matchingChildren }
-          }
-          return null
-        })
-        .filter((node): node is CurriculumItem => node !== null)
+        if (isMatch || matchingChildren.length > 0) {
+          acc.push({ ...node, children: matchingChildren })
+        }
+        return acc
+      }, [])
     }
 
     return filterNodes(treeData)

@@ -12,7 +12,7 @@ import {
   getCurriculumForCourse,
   logParentContact
 } from './actions'
-import { upsertGrade } from '../../progress/actions'
+import { upsertGrade } from '../../../progress/actions'
 import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   ChevronLeft, 
+  ChevronDown,
   Download, 
   Printer, 
   Edit, 
@@ -196,9 +197,20 @@ export default function StudentProfilePage({ params }: PageProps) {
   })
 
   // Struggling areas (topics with most LPs)
+  interface StrugglingArea {
+    topicId: string
+    subtopicId: string
+    topicName: string
+    subtopicName: string
+    courseName: string
+    lpCount: number
+    latestGrade: number
+    latestDate: string
+  }
+
   const strugglingAreas = grades
     .filter((g: any) => g.is_low_point)
-    .reduce((acc: any[], g: any) => {
+    .reduce((acc: StrugglingArea[], g: any) => {
       const existing = acc.find(a => a.topicId === g.topic_id && a.subtopicId === g.subtopic_id)
       if (existing) {
         existing.lpCount++
@@ -216,7 +228,7 @@ export default function StudentProfilePage({ params }: PageProps) {
       }
       return acc
     }, [])
-    .sort((a, b) => b.lpCount - a.lpCount)
+    .sort((a: StrugglingArea, b: StrugglingArea) => b.lpCount - a.lpCount)
     .slice(0, 5)
 
   // Chart data

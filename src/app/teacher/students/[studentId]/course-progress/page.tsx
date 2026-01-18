@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getCourseProgressData, upsertGrade, deleteGradeAction } from '../../progress/actions'
+import { getCourseProgressData, upsertGrade, deleteGradeAction } from '../../../progress/actions'
 import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
@@ -43,6 +43,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { 
   Collapsible,
@@ -395,7 +402,7 @@ export default function StudentCourseProgressPage({ params }: PageProps) {
                                   </h4>
                                   <Button 
                                     variant="ghost" 
-                                    size="xs" 
+                                    size="sm" 
                                     className="h-8 text-xs"
                                     onClick={() => handleAddGrade(topic, subtopic)}
                                   >
