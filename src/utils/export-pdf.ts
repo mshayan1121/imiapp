@@ -447,6 +447,386 @@ export async function generateSummaryPDF(data: any[], options: PDFOptions): Prom
 }
 
 /**
+ * Add section title to PDF
+ */
+function addSectionTitle(doc: jsPDF, title: string, currentY: number): number {
+  const sectionSpacing = 10 // mm between sections
+  
+  // Add spacing before section (except first)
+  let y = currentY + sectionSpacing
+  
+  // Check if we need a new page
+  if (y + 20 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+    doc.addPage()
+    y = CONTENT_START_Y + 5
+  }
+  
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30, 58, 95) // Dark blue
+  doc.text(title, MARGIN, y)
+  
+  // Underline
+  doc.setDrawColor(30, 58, 95)
+  doc.setLineWidth(0.5)
+  doc.line(MARGIN, y + 2, MARGIN + 60, y + 2)
+  
+  return y + 8 // Return next Y position
+}
+
+/**
+ * Add key-value pair to PDF
+ */
+function addKeyValue(doc: jsPDF, key: string, value: string, x: number, y: number, maxWidth?: number): number {
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(55, 65, 81) // Dark gray
+  doc.text(`${key}:`, x, y)
+  
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(0, 0, 0) // Black
+  const lines = doc.splitTextToSize(value, maxWidth || CONTENT_WIDTH - x - MARGIN)
+  doc.text(lines, x + 40, y)
+  
+  return y + lines.length * 5 + 3 // Return next Y position
+}
+
+/**
+ * Generate Student Profile PDF
+ */
+export async function generateStudentProfilePDF(
+  studentData: {
+    student: any
+    enrolledClasses: any[]
+    grades: any[]
+    contacts: any[]
+    notes: any[]
+    activeTerm: any
+  },
+  options: PDFOptions,
+): Promise<void> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  const { student, enrolledClasses, grades, contacts, notes, activeTerm } = studentData
+
+  // Calculate statistics (same as page)
+  const totalGrades = grades.length
+  const totalLPs = grades.filter((g: any) => g.is_low_point).length
+  const avgPercentage = totalGrades > 0
+    ? Math.round(grades.reduce((sum: number, g: any) => sum + g.percentage, 0) / totalGrades)
+    : 0
+  const flagCount = totalLPs >= 5 ? 3 : totalLPs >= 4 ? 2 : totalLPs >= 3 ? 1 : 0
+
+  // Performance by course
+  const coursePerformance = enrolledClasses.map((ec: any) => {
+    const courseGrades = grades.filter((g: any) => g.course_id === ec.course_id)
+    const courseAvg = courseGrades.length > 0
+      ? Math.round(courseGrades.reduce((sum: number, g: any) => sum + g.percentage, 0) / courseGrades.length)
+      : 0
+    const courseLPs = courseGrades.filter((g: any) => g.is_low_point).length
+
+    return {
+      courseId: ec.course_id,
+      courseName: ec.courses?.name || 'N/A',
+      qualification: ec.courses?.qualifications?.name || '',
+      board: ec.courses?.boards?.name || '',
+      gradesCount: courseGrades.length,
+      lpCount: courseLPs,
+      avg: courseAvg,
+      status: courseAvg < 70 ? 'Struggling' : courseAvg < 80 ? 'At Risk' : 'On Track',
+    }
+  })
+
+  // Struggling areas
+  const strugglingAreas = grades
+    .filter((g: any) => g.is_low_point)
+    .reduce((acc: any[], g: any) => {
+      const existing = acc.find((a) => a.topicId === g.topic_id && a.subtopicId === g.subtopic_id)
+      if (existing) {
+        existing.lpCount++
+      } else {
+        acc.push({
+          topicId: g.topic_id,
+          subtopicId: g.subtopic_id,
+          topicName: g.topics?.name || 'N/A',
+          subtopicName: g.subtopics?.name || 'N/A',
+          courseName: g.courses?.name || 'N/A',
+          lpCount: 1,
+          latestGrade: g.percentage,
+          latestDate: g.assessed_date,
+        })
+      }
+      return acc
+    }, [])
+    .sort((a: any, b: any) => b.lpCount - a.lpCount)
+    .slice(0, 5)
+
+  let currentY = CONTENT_START_Y + 5
+
+  // Section 1: Student Information
+  currentY = addSectionTitle(doc, 'Student Information', currentY)
+
+  const studentInfo = [
+    ['Student Name', student.name || 'N/A'],
+    ['Student ID', student.id?.slice(0, 8) || 'N/A'],
+    ['Year Group', student.year_group || 'N/A'],
+    ['School', student.school || 'N/A'],
+    ['Enrollment Date', formatDate(student.created_at)],
+    ['Current Term', activeTerm?.name || 'N/A'],
+    ['Total Classes', enrolledClasses.length.toString()],
+  ]
+
+  studentInfo.forEach(([key, value]) => {
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+    currentY = addKeyValue(doc, key, value, MARGIN, currentY)
+  })
+
+  // Section 2: Academic Overview
+  currentY = addSectionTitle(doc, 'Academic Overview', currentY)
+
+  const academicStats = [
+    ['Classes', enrolledClasses.length.toString()],
+    ['Grades Entered', totalGrades.toString()],
+    ['Low Points', totalLPs.toString()],
+    ['Flags', flagCount > 0 ? `${flagCount} Flag${flagCount > 1 ? 's' : ''}` : '0'],
+    ['Average Percentage', `${avgPercentage}%`],
+  ]
+
+  academicStats.forEach(([key, value]) => {
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+    currentY = addKeyValue(doc, key, value, MARGIN, currentY)
+  })
+
+  // Section 3: Flagging Alert (if applicable)
+  if (flagCount > 0) {
+    currentY = addSectionTitle(doc, 'Student Requires Attention', currentY)
+
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
+    const alertText =
+      flagCount === 1
+        ? '1 Flag (3 Low Points) - Message parents recommended'
+        : flagCount === 2
+          ? '2 Flags (4 Low Points) - Call parents needed'
+          : '3 Flags (5+ Low Points) - Meeting required'
+
+    const alertLines = doc.splitTextToSize(alertText, CONTENT_WIDTH)
+    doc.text(alertLines, MARGIN, currentY)
+    currentY += alertLines.length * 5 + 5
+  }
+
+  // Section 4: Performance Breakdown by Course (Table)
+  if (coursePerformance.length > 0) {
+    currentY = addSectionTitle(doc, 'Performance Breakdown by Course', currentY)
+
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    const headers = ['Course Name', 'Grades', 'Low Points', 'Average %', 'Status']
+    const rows = coursePerformance.map((cp) => [
+      cp.courseName,
+      cp.gradesCount.toString(),
+      cp.lpCount.toString(),
+      `${cp.avg}%`,
+      cp.status,
+    ])
+
+    currentY = addTable(doc, headers, rows, currentY, [60, 20, 25, 30, 35])
+    currentY += 5
+  }
+
+  // Section 5: Struggling Areas
+  if (strugglingAreas.length > 0) {
+    currentY = addSectionTitle(doc, 'Topics Requiring Attention', currentY)
+
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    const strugglingHeaders = ['Course', 'Topic → Subtopic', 'Low Points', 'Latest Grade']
+    const strugglingRows = strugglingAreas.map((area) => [
+      area.courseName,
+      `${area.topicName} → ${area.subtopicName}`,
+      area.lpCount.toString(),
+      `${area.latestGrade}%`,
+    ])
+
+    currentY = addTable(doc, strugglingHeaders, strugglingRows, currentY, [50, 80, 25, 25])
+    currentY += 5
+  }
+
+  // Section 6: Recent Activity (Grade History)
+  if (grades.length > 0) {
+    currentY = addSectionTitle(doc, 'Recent Activity', currentY)
+
+    if (currentY + 15 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    const recentGrades = grades.slice(0, 20) // Limit to 20 most recent
+    const gradeHeaders = ['Date', 'Course', 'Topic', 'Marks', '%', 'Type', 'Status']
+    const gradeRows = recentGrades.map((g: any) => [
+      formatDate(g.assessed_date),
+      g.courses?.name || 'N/A',
+      g.topics?.name || 'N/A',
+      `${g.marks_obtained}/${g.total_marks}`,
+      `${g.percentage}%`,
+      g.work_type === 'classwork' ? 'Classwork' : 'Homework',
+      g.is_low_point ? 'LP' : 'Pass',
+    ])
+
+    currentY = addTable(doc, gradeHeaders, gradeRows, currentY, [25, 35, 35, 20, 15, 25, 15])
+    currentY += 5
+  }
+
+  // Section 7: Performance Trends (as table)
+  if (grades.length > 0) {
+    currentY = addSectionTitle(doc, 'Performance Trends', currentY)
+
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    // Grade Timeline as table
+    const timelineGrades = [...grades].reverse().slice(0, 15)
+    const timelineHeaders = ['Date', 'Percentage', 'Topic', 'Status']
+    const timelineRows = timelineGrades.map((g: any) => [
+      formatDate(g.assessed_date),
+      `${g.percentage}%`,
+      g.topics?.name || 'N/A',
+      g.is_low_point ? 'Low Point' : 'Pass',
+    ])
+
+    currentY = addTable(doc, timelineHeaders, timelineRows, currentY, [40, 25, 80, 30])
+    currentY += 10
+
+    // Course Performance as table
+    if (coursePerformance.length > 0) {
+      const courseHeaders = ['Course', 'Average %', 'Status']
+      const courseRows = coursePerformance.map((cp) => [`${cp.courseName}`, `${cp.avg}%`, cp.status])
+
+      if (currentY + 15 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+        doc.addPage()
+        currentY = CONTENT_START_Y + 5
+      }
+
+      currentY = addTable(doc, courseHeaders, courseRows, currentY, [100, 35, 35])
+      currentY += 5
+    }
+  }
+
+  // Section 8: Contact Information
+  currentY = addSectionTitle(doc, 'Contact Information', currentY)
+
+  if (contacts.length > 0) {
+    const contact = contacts[0]
+    
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    currentY = addKeyValue(doc, 'Parent/Guardian Name', contact.parent_name || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Relationship', contact.relationship || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Email', contact.email || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Phone', contact.phone || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Preferred Contact', contact.preferred_contact_method || 'Email', MARGIN, currentY)
+    currentY += 5
+
+    if (currentY + 10 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+
+    currentY = addKeyValue(doc, 'Address', contact.address || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'City', contact.city || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Postal Code', contact.postal_code || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Emergency Contact', contact.emergency_contact_name || 'N/A', MARGIN, currentY)
+    currentY = addKeyValue(doc, 'Emergency Phone', contact.emergency_contact_phone || 'N/A', MARGIN, currentY)
+  } else {
+    if (currentY + 5 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+      doc.addPage()
+      currentY = CONTENT_START_Y + 5
+    }
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(107, 114, 128)
+    doc.text('No contact information available', MARGIN, currentY)
+    currentY += 8
+  }
+
+  // Section 9: Teacher Notes
+  if (notes.length > 0) {
+    currentY = addSectionTitle(doc, 'Teacher Notes & Observations', currentY)
+
+    notes.slice(0, 10).forEach((note: any) => {
+      if (currentY + 15 > A4_HEIGHT - FOOTER_HEIGHT - MARGIN) {
+        doc.addPage()
+        currentY = CONTENT_START_Y + 5
+      }
+
+      const noteAuthor = note.profiles?.full_name || note.profiles?.email || 'Unknown'
+      const noteDate = formatDateTime(note.created_at)
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(55, 65, 81)
+      doc.text(`${noteAuthor} - ${noteDate}`, MARGIN, currentY)
+      currentY += 5
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+      const noteLines = doc.splitTextToSize(note.content || '', CONTENT_WIDTH)
+      doc.text(noteLines, MARGIN, currentY)
+      currentY += noteLines.length * 4 + 8
+
+      // Divider line
+      doc.setDrawColor(229, 231, 235)
+      doc.setLineWidth(0.3)
+      doc.line(MARGIN, currentY - 3, A4_WIDTH - MARGIN, currentY - 3)
+    })
+  }
+
+  // Add headers and footers to all pages
+  const actualPages = (doc as any).getNumberOfPages()
+  for (let i = 1; i <= actualPages; i++) {
+    doc.setPage(i)
+    if (i === 1) {
+      await addHeader(doc, options, i, actualPages)
+    } else {
+      await addHeader(doc, options, i, actualPages)
+    }
+    addFooter(doc, i, actualPages)
+  }
+
+  const studentName = student.name?.toLowerCase().replace(/\s+/g, '_') || 'student'
+  const filename = `student_profile_${studentName}_${new Date().toISOString().split('T')[0]}.pdf`
+  doc.save(filename)
+}
+
+/**
  * Generic PDF export function
  */
 export async function exportReportToPDF(

@@ -59,6 +59,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
+import { generateStudentProfilePDF } from '@/utils/export-pdf'
 import { 
   Table, 
   TableBody, 
@@ -137,6 +138,7 @@ export default function StudentProfilePage() {
   })
 
   const [error, setError] = useState<string | null>(null)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
 
   useEffect(() => {
     if (studentId) {
@@ -362,10 +364,45 @@ export default function StudentProfilePage() {
     }
   }
 
+  const handleGeneratePDF = async () => {
+    if (!data) {
+      toast.error('No data available to generate report')
+      return
+    }
+
+    try {
+      setIsGeneratingPDF(true)
+      await generateStudentProfilePDF(data, {
+        title: `Student Profile - ${data.student.name}`,
+        term: data.activeTerm?.name || 'Current Term',
+      })
+      toast.success('PDF report generated successfully')
+    } catch (error: any) {
+      console.error('Error generating PDF:', error)
+      toast.error(error?.message || 'Failed to generate PDF report')
+    } finally {
+      setIsGeneratingPDF(false)
+    }
+  }
+
   const headerAction = (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size="sm" onClick={() => window.print()}>
-        <Printer className="mr-2 h-4 w-4" /> Generate Report
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleGeneratePDF}
+        disabled={isGeneratingPDF || !data}
+      >
+        {isGeneratingPDF ? (
+          <>
+            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Printer className="mr-2 h-4 w-4" /> Generate Report
+          </>
+        )}
       </Button>
       <Button variant="outline" size="sm" onClick={() => setIsStudentInfoDialogOpen(true)}>
         <Edit className="mr-2 h-4 w-4" /> Edit Info
