@@ -2,23 +2,32 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { unstable_cache } from 'next/cache'
 
 export async function getAdminDashboardData() {
-  const supabase = await createClient()
+  // Auth check must happen OUTSIDE the cache function (uses cookies)
+  const supabaseAuth = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabaseAuth.auth.getUser()
 
   if (!user || user.user_metadata.role !== 'admin') {
     throw new Error('Not authorized')
   }
 
-  // 1. Get Active Term
-  const { data: activeTerm } = await supabase
-    .from('terms')
-    .select('*')
-    .eq('is_active', true)
-    .single()
+  // Cache the data fetching part - use admin client that doesn't need cookies
+  return unstable_cache(
+    async () => {
+      // Use admin client for read-only queries (doesn't require cookies)
+      const { createAdminClient } = await import('@/utils/supabase/admin')
+      const supabase = createAdminClient()
+
+      // 1. Get Active Term
+      const { data: activeTerm } = await supabase
+        .from('terms')
+        .select('*')
+        .eq('is_active', true)
+        .single()
 
   // 2. System Overview Stats
   const { count: totalStudents } = await supabase
@@ -346,25 +355,32 @@ export async function getAdminDashboardData() {
     }
   }
 
-  return {
-    activeTerm,
-    stats: {
-      totalStudents: totalStudents || 0,
-      totalTeachers: totalTeachers || 0,
-      totalClasses: totalClasses || 0,
-      totalCourses: totalCourses || 0,
-      totalGrades: totalGrades || 0,
-      totalFlags: totalFlags,
+      return {
+        activeTerm,
+        stats: {
+          totalStudents: totalStudents || 0,
+          totalTeachers: totalTeachers || 0,
+          totalClasses: totalClasses || 0,
+          totalCourses: totalCourses || 0,
+          totalGrades: totalGrades || 0,
+          totalFlags: totalFlags,
+        },
+        flagBreakdown,
+        flaggedCount,
+        activities,
+        institutePerformance: {
+          instituteAvg: Math.round(instituteAvg),
+          flagRate: Math.round(flagRate),
+        },
+        classPerformance,
+        teacherSummary,
+        performanceTrends,
+      }
     },
-    flagBreakdown,
-    flaggedCount,
-    activities,
-    institutePerformance: {
-      instituteAvg: Math.round(instituteAvg),
-      flagRate: Math.round(flagRate),
-    },
-    classPerformance,
-    teacherSummary,
-    performanceTrends,
-  }
+    ['admin-dashboard-data'], // Cache key
+    {
+      revalidate: 60, // 60 seconds - short cache for fresh dashboard data
+      tags: ['admin-dashboard', 'grades', 'students', 'terms'] // Tags for manual revalidation
+    }
+  )()
 }

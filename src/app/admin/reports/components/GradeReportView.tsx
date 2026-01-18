@@ -83,14 +83,14 @@ export function GradeReportView() {
             <div>
               <label className="text-sm font-medium mb-2 block">Class</label>
               <Select
-                value={filters.class_id || ''}
-                onValueChange={(v) => setFilters({ ...filters, class_id: v || undefined })}
+                value={filters.class_id || 'all'}
+                onValueChange={(v) => setFilters({ ...filters, class_id: v === 'all' ? undefined : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
+                  <SelectItem value="all">All Classes</SelectItem>
                   {filterOptions.classes.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
@@ -103,14 +103,14 @@ export function GradeReportView() {
             <div>
               <label className="text-sm font-medium mb-2 block">Course</label>
               <Select
-                value={filters.course_id || ''}
-                onValueChange={(v) => setFilters({ ...filters, course_id: v || undefined })}
+                value={filters.course_id || 'all'}
+                onValueChange={(v) => setFilters({ ...filters, course_id: v === 'all' ? undefined : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Courses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Courses</SelectItem>
+                  <SelectItem value="all">All Courses</SelectItem>
                   {filterOptions.courses.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}

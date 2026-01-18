@@ -83,14 +83,14 @@ export function GradeReportView() {
             <div>
               <label className="text-sm font-medium mb-2 block">Class</label>
               <Select
-                value={filters.class_id || ''}
-                onValueChange={(v) => setFilters({ ...filters, class_id: v || undefined })}
+                value={filters.class_id || 'all'}
+                onValueChange={(v) => setFilters({ ...filters, class_id: v === 'all' ? undefined : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All My Classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All My Classes</SelectItem>
+                  <SelectItem value="all">All My Classes</SelectItem>
                   {filterOptions.classes.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}

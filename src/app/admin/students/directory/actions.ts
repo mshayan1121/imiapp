@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { StudentWithStats, StudentDirectoryFilters } from '@/types/students'
 import { revalidatePath } from 'next/cache'
+import { unstable_cache } from 'next/cache'
 
 export async function getDirectoryData(
   filters: StudentDirectoryFilters,
@@ -209,25 +210,39 @@ export async function getDirectoryData(
 }
 
 export async function getFilterOptions(role: 'admin' | 'teacher', teacherId?: string) {
-  const supabase = await createClient()
+  // Create a cache key that includes role and teacherId
+  const cacheKey = `filter-options-${role}-${teacherId || 'all'}`
   
-  const { data: schools } = await supabase.from('students').select('school').not('school', 'is', null)
-  const uniqueSchools = Array.from(new Set(schools?.map(s => s.school) || []))
+  return unstable_cache(
+    async () => {
+      // Use admin client for read-only queries (doesn't require cookies)
+      const { createAdminClient } = await import('@/utils/supabase/admin')
+      const supabase = createAdminClient()
+      
+      const { data: schools } = await supabase.from('students').select('school').not('school', 'is', null)
+      const uniqueSchools = Array.from(new Set(schools?.map(s => s.school) || []))
 
-  const { data: yearGroups } = await supabase.from('students').select('year_group').not('year_group', 'is', null)
-  const uniqueYearGroups = Array.from(new Set(yearGroups?.map(s => s.year_group) || [])).sort()
+      const { data: yearGroups } = await supabase.from('students').select('year_group').not('year_group', 'is', null)
+      const uniqueYearGroups = Array.from(new Set(yearGroups?.map(s => s.year_group) || [])).sort()
 
-  let classQuery = supabase.from('classes').select('id, name')
-  if (role === 'teacher' && teacherId) {
-    classQuery = classQuery.eq('teacher_id', teacherId)
-  }
-  const { data: classes } = await classQuery
+      let classQuery = supabase.from('classes').select('id, name')
+      if (role === 'teacher' && teacherId) {
+        classQuery = classQuery.eq('teacher_id', teacherId)
+      }
+      const { data: classes } = await classQuery
 
-  return {
-    schools: uniqueSchools,
-    yearGroups: uniqueYearGroups,
-    classes: classes || []
-  }
+      return {
+        schools: uniqueSchools,
+        yearGroups: uniqueYearGroups,
+        classes: classes || []
+      }
+    },
+    [cacheKey], // Cache key
+    {
+      revalidate: 300, // 5 minutes - these change rarely
+      tags: ['filter-options', 'students', 'classes'] // Tags for manual revalidation
+    }
+  )()
 }
 
 export async function bulkEnrollStudents(studentIds: string[], classId: string, courseId: string) {

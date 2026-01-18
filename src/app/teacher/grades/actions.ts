@@ -3,27 +3,46 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { Grade, GradeFiltersState } from '@/types/grades'
+import { unstable_cache } from 'next/cache'
 
 export async function getFiltersData() {
-  const supabase = await createClient()
+  // Auth check outside cache (uses cookies)
+  const supabaseAuth = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabaseAuth.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // Get terms
-  const { data: terms } = await supabase
-    .from('terms')
-    .select('id, name, is_active')
-    .order('start_date', { ascending: false })
+  // Capture userId before cache function
+  const userId = user.id
 
-  // Get classes
-  const { data: classes } = await supabase
-    .from('classes')
-    .select('id, name')
-    .eq('teacher_id', user.id)
+  // Cache filters data per teacher - terms and classes change infrequently
+  return unstable_cache(
+    async () => {
+      // Use admin client for read-only queries (doesn't require cookies)
+      const { createAdminClient } = await import('@/utils/supabase/admin')
+      const supabase = createAdminClient()
+      
+      // Get terms
+      const { data: terms } = await supabase
+        .from('terms')
+        .select('id, name, is_active')
+        .order('start_date', { ascending: false })
 
-  return { terms, classes }
+      // Get classes
+      const { data: classes } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('teacher_id', userId)
+
+      return { terms, classes }
+    },
+    [`grade-filters-${userId}`], // User-specific cache key
+    {
+      revalidate: 300, // 5 minutes - terms and classes change rarely
+      tags: ['grade-filters', `teacher-${user.id}`, 'terms', 'classes']
+    }
+  )()
 }
 
 export async function getClassStudents(classId: string) {
