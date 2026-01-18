@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2, ChevronDown, ChevronRight, BookOpen } from 'lucide-react'
+import { Download, Loader2, ChevronDown, ChevronRight, BookOpen, ExternalLink, Users } from 'lucide-react'
 import { getClassStudents, getCourseTopics } from '@/app/teacher/classes/actions'
 import { format } from 'date-fns'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import Link from 'next/link'
 
 interface ClassDetailsDialogProps {
   classId: string | null
@@ -64,6 +65,22 @@ function StudentRow({ record }: { record: any }) {
         </TableCell>
         <TableCell className="text-muted-foreground text-sm">
           {format(new Date(record.enrolled_at), 'MMM d, yyyy')}
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-1">
+            <Button asChild variant="ghost" size="sm" className="h-8 gap-1">
+              <Link href={`/teacher/students/${record.student.id}/profile`}>
+                <Users className="h-3.5 w-3.5" />
+                View Profile
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="h-8 gap-1">
+              <Link href={`/teacher/students/${record.student.id}/course-progress?classId=${record.class_id}&courseId=${record.course_id}`}>
+                <ExternalLink className="h-3.5 w-3.5" />
+                View Progress
+              </Link>
+            </Button>
+          </div>
         </TableCell>
       </TableRow>
       {isOpen && (
@@ -213,6 +230,7 @@ export function ClassDetailsDialog({
                   <TableHead>School</TableHead>
                   <TableHead>Course</TableHead>
                   <TableHead>Enrolled</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

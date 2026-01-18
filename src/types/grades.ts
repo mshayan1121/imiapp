@@ -41,7 +41,7 @@ export interface Grade {
   course_id: string
   term_id: string
   topic_id: string
-  subtopic_id: string
+  subtopic_id: string | null
   work_type: 'classwork' | 'homework'
   work_subtype: 'worksheet' | 'pastpaper'
   marks_obtained: number

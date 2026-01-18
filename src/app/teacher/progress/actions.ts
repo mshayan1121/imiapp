@@ -28,6 +28,7 @@ export async function getStudentDetailProgress(studentId: string, termId: string
       `
       *,
       class_students (
+        classes (id, name),
         courses (id, name)
       )
     `,
@@ -98,4 +99,148 @@ export async function getStudentDetailProgress(studentId: string, termId: string
     topicPerformance: Object.values(performanceByTopic),
     gradeTimeline: typedGrades,
   }
+}
+
+export async function getCourseProgressData(
+  studentId: string,
+  classId: string,
+  courseId: string,
+  termId: string,
+) {
+  const supabase = await createClient()
+
+  // Get student info with class details
+  const { data: studentInfo } = await supabase
+    .from('students')
+    .select(
+      `
+      *,
+      class_students!inner (
+        id,
+        classes!inner (id, name),
+        courses!inner (
+          id, 
+          name, 
+          subject_id,
+          boards (name),
+          qualifications (name)
+        )
+      )
+    `,
+    )
+    .eq('id', studentId)
+    .eq('class_students.class_id', classId)
+    .eq('class_students.course_id', courseId)
+    .single()
+
+  if (!studentInfo) throw new Error('Student not found in this class/course context')
+
+  const subjectId = (studentInfo as any).class_students[0].courses.subject_id
+
+  // Get full curriculum structure
+  const { data: topics } = await supabase
+    .from('topics')
+    .select(
+      `
+      id,
+      name,
+      subtopics (
+        id,
+        name
+      )
+    `,
+    )
+    .eq('subject_id', subjectId)
+    .order('name')
+
+  // Get all grades for this student in this term/class/course
+  const { data: grades } = await supabase
+    .from('grades')
+    .select(
+      `
+      *,
+      topics (id, name),
+      subtopics (id, name)
+    `,
+    )
+    .eq('student_id', studentId)
+    .eq('class_id', classId)
+    .eq('course_id', courseId)
+    .eq('term_id', termId)
+    .order('assessed_date', { ascending: false })
+
+  return {
+    studentInfo,
+    topics: topics || [],
+    grades: (grades || []) as Grade[],
+  }
+}
+
+export async function upsertGrade(gradeData: any) {
+  const supabase = await createClient()
+  const {
+    id,
+    student_id,
+    class_id,
+    course_id,
+    term_id,
+    topic_id,
+    subtopic_id,
+    work_type,
+    work_subtype,
+    marks_obtained,
+    total_marks,
+    assessed_date,
+    notes,
+    attempt_number,
+  } = gradeData
+
+  const percentage = Math.round((marks_obtained / total_marks) * 100 * 10) / 10
+  const is_low_point = percentage < 80
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const payload = {
+    student_id,
+    class_id,
+    course_id,
+    term_id,
+    topic_id,
+    subtopic_id: subtopic_id || null,
+    work_type,
+    work_subtype,
+    marks_obtained,
+    total_marks,
+    percentage,
+    is_low_point,
+    assessed_date,
+    notes,
+    attempt_number: attempt_number || 1,
+    entered_by: user.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (id) {
+    const { error } = await supabase.from('grades').update(payload).eq('id', id)
+    if (error) throw error
+  } else {
+    const { error } = await supabase.from('grades').insert({
+      ...payload,
+      id: undefined,
+      created_at: new Date().toISOString(),
+    })
+    if (error) throw error
+  }
+
+  return { success: true }
+}
+
+export async function deleteGradeAction(gradeId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('grades').delete().eq('id', gradeId)
+  if (error) throw error
+  return { success: true }
 }

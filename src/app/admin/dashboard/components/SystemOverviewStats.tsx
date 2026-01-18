@@ -1,4 +1,4 @@
-import { Users, UserCheck, BookOpen, Layers, FileText } from 'lucide-react'
+import { Users, UserCheck, BookOpen, Layers, Flag } from 'lucide-react'
 import { StatCard } from '@/components/layout/stat-card'
 
 interface SystemOverviewStatsProps {
@@ -8,6 +8,7 @@ interface SystemOverviewStatsProps {
     totalClasses: number
     totalCourses: number
     totalGrades: number
+    totalFlags: number
   }
 }
 
@@ -34,9 +35,9 @@ export function SystemOverviewStats({ stats }: SystemOverviewStatsProps) {
       icon: BookOpen,
     },
     {
-      title: 'Grades This Term',
-      value: stats.totalGrades,
-      icon: FileText,
+      title: 'Flags This Term',
+      value: stats.totalFlags,
+      icon: Flag,
     },
   ]
 

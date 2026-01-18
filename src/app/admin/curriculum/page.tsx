@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { CurriculumManager } from '@/components/admin/curriculum-manager'
+import { CurriculumManagerTree } from '@/components/admin/curriculum/curriculum-manager-tree'
 import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
 
@@ -35,11 +35,11 @@ export default async function ManageCurriculumPage() {
   return (
     <PageContainer className="animate-in fade-in duration-500">
       <PageHeader
-        title="Manage Curriculum"
-        description="Manage courses, qualifications, boards, subjects, topics, and subtopics."
+        title="Curriculum Management"
+        description="View and manage the hierarchical structure of qualifications, boards, subjects, and topics."
       />
 
-      <CurriculumManager
+      <CurriculumManagerTree
         qualifications={qualifications || []}
         boards={boards || []}
         subjects={subjects || []}

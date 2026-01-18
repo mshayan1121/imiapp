@@ -97,11 +97,18 @@ export default function StudentProgressDetailPage({
           : 0
 
   const action = (
-    <Button asChild variant="ghost" size="sm">
-      <Link href="/teacher/progress">
-        <ChevronLeft className="mr-2 h-4 w-4" /> Back to Class
-      </Link>
-    </Button>
+    <div className="flex gap-2">
+      <Button asChild variant="outline" size="sm">
+        <Link href={`/teacher/students/${studentId}/course-progress?classId=${data.studentInfo.class_students?.[0]?.classes?.id}&courseId=${data.studentInfo.class_students?.[0]?.courses?.id}&termId=${term}`}>
+          <FileText className="mr-2 h-4 w-4" /> Curriculum Progress
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/teacher/progress">
+          <ChevronLeft className="mr-2 h-4 w-4" /> Back to Class
+        </Link>
+      </Button>
+    </div>
   )
 
   return (

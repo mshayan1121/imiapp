@@ -5,7 +5,7 @@ import { TrendingUp, Award, AlertCircle, BookOpen, Target } from 'lucide-react'
 interface InstitutePerformanceOverviewProps {
   performance: {
     instituteAvg: number
-    lpPercentage: number
+    flagRate: number
   }
 }
 
@@ -13,7 +13,7 @@ export function InstitutePerformanceOverview({ performance }: InstitutePerforman
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="text-xl font-bold">Performance Statistics (This Term)</CardTitle>
+        <CardTitle className="text-xl font-bold">Institute Overview</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
@@ -33,11 +33,11 @@ export function InstitutePerformanceOverview({ performance }: InstitutePerforman
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div className="flex items-center gap-2 text-slate-500 mb-2">
               <AlertCircle className="h-4 w-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">LP Rate</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Flag Rate</span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-3xl font-black text-slate-900">
-                {performance.lpPercentage}%
+                {performance.flagRate}%
               </span>
               <span className="text-xs font-bold text-red-600">↓ 1%</span>
             </div>

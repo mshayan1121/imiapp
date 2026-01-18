@@ -34,6 +34,7 @@ export async function createStudent(formData: FormData) {
     }
 
     revalidatePath('/admin/students')
+    revalidatePath('/admin/students/directory')
     return { success: true }
   } catch (err) {
     console.error('Unexpected Error:', err)
@@ -65,6 +66,7 @@ export async function updateStudent(id: string, formData: FormData) {
     }
 
     revalidatePath('/admin/students')
+    revalidatePath('/admin/students/directory')
     return { success: true }
   } catch (err) {
     console.error('Unexpected Error:', err)
@@ -84,6 +86,7 @@ export async function deleteStudent(id: string) {
     }
 
     revalidatePath('/admin/students')
+    revalidatePath('/admin/students/directory')
     return { success: true }
   } catch (error) {
     console.error('Server Error:', error)
@@ -103,6 +106,7 @@ export async function bulkDeleteStudents(ids: string[]) {
     }
 
     revalidatePath('/admin/students')
+    revalidatePath('/admin/students/directory')
     return { success: true }
   } catch (error) {
     console.error('Server Error:', error)

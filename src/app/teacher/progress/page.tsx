@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getFiltersData } from '../grades/actions'
@@ -24,8 +24,12 @@ import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
 import { StatCard } from '@/components/layout/stat-card'
+import { useSearchParams } from 'next/navigation'
 
-export default function ClassProgressPage() {
+function ProgressContent() {
+  const searchParams = useSearchParams()
+  const statusFilter = searchParams.get('status')
+  
   const [loading, setLoading] = useState(false)
   const [filters, setFilters] = useState({ class_id: '', term_id: '' })
   const [terms, setTerms] = useState<any[]>([])
@@ -36,7 +40,7 @@ export default function ClassProgressPage() {
     getFiltersData().then(({ terms, classes }) => {
       setTerms(terms || [])
       setClasses(classes || [])
-      const activeTerm = terms?.find(t => t.is_active) || terms?.[0]
+      const activeTerm = terms?.find((t: any) => t.is_active) || terms?.[0]
       if (activeTerm) {
         setFilters(prev => ({ ...prev, term_id: activeTerm.id }))
       }
@@ -59,6 +63,13 @@ export default function ClassProgressPage() {
     fetchProgress()
   }, [fetchProgress])
 
+  const filteredData = progressData.filter(student => {
+    if (statusFilter === 'flagged') {
+      return student.flag_count > 0
+    }
+    return true
+  })
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Meeting Required':
@@ -73,7 +84,7 @@ export default function ClassProgressPage() {
   }
 
   const handleExport = () => {
-    const exportData = progressData.map(p => ({
+    const exportData = filteredData.map(p => ({
       'Student Name': p.student_name,
       'Year Group': p.year_group,
       'Course': p.course_name,
@@ -120,7 +131,7 @@ export default function ClassProgressPage() {
       </div>
       <Button 
         variant="outline" 
-        disabled={!progressData.length}
+        disabled={!filteredData.length}
         onClick={handleExport}
         className="border-gray-200"
       >
@@ -132,13 +143,13 @@ export default function ClassProgressPage() {
   return (
     <PageContainer className="animate-in fade-in duration-500">
       <PageHeader
-        title="Student Progress"
-        description="Monitor class performance and identify at-risk students."
+        title={statusFilter === 'flagged' ? "Flagged Students" : "Student Progress"}
+        description={statusFilter === 'flagged' ? "Review students who require attention." : "Monitor class performance and identify at-risk students."}
         action={action}
       />
 
       {/* Overview Stats */}
-      {progressData.length > 0 && (
+      {progressData.length > 0 && !statusFilter && (
         <Section>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard
@@ -163,7 +174,7 @@ export default function ClassProgressPage() {
         </Section>
       )}
 
-      <Section title="Progress Summary">
+      <Section title={statusFilter === 'flagged' ? "Flagged Summary" : "Progress Summary"}>
         {loading ? (
           <TableSkeleton />
         ) : !filters.class_id ? (
@@ -174,12 +185,12 @@ export default function ClassProgressPage() {
               description="Choose a class and term from the filters above to view student progress summaries."
             />
           </Card>
-        ) : progressData.length === 0 ? (
+        ) : filteredData.length === 0 ? (
           <Card className="border-gray-200 shadow-sm overflow-hidden">
             <EmptyState 
               icon={AlertTriangle}
-              title="No Progress Data"
-              description="No assessment data found for the selected class and term."
+              title={statusFilter === 'flagged' ? "No Flagged Students" : "No Progress Data"}
+              description={statusFilter === 'flagged' ? "Great! No students currently have flags in this class." : "No assessment data found for the selected class and term."}
             />
           </Card>
         ) : (
@@ -199,7 +210,7 @@ export default function ClassProgressPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {progressData.map((student) => (
+                {filteredData.map((student) => (
                   <TableRow key={student.student_id} className="group hover:bg-gray-50/50">
                     <TableCell className="font-semibold text-gray-900">{student.student_name}</TableCell>
                     <TableCell className="text-gray-600">{student.year_group}</TableCell>
@@ -243,5 +254,13 @@ export default function ClassProgressPage() {
         )}
       </Section>
     </PageContainer>
+  )
+}
+
+export default function ClassProgressPage() {
+  return (
+    <Suspense fallback={<TableSkeleton />}>
+      <ProgressContent />
+    </Suspense>
   )
 }

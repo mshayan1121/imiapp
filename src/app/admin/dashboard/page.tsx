@@ -54,7 +54,7 @@ async function AdminDashboardContent() {
       </div>
 
       <Section title="Performance Trends">
-        <PerformanceTrends />
+        <PerformanceTrends data={data.performanceTrends} />
       </Section>
 
       <Section title="Class Performance">

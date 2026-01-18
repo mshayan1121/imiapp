@@ -25,6 +25,7 @@ interface ClassData {
   gradesEntered: number
   avgPercentage: number
   lpCount: number
+  flagCount: number
 }
 
 interface ClassPerformanceTableProps {
@@ -41,7 +42,7 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
   )
 
   const exportToCSV = () => {
-    const headers = ['Class Name', 'Teacher', 'Students', 'Grades Entered', 'Avg %', 'LP Count']
+    const headers = ['Class Name', 'Teacher', 'Students', 'Grades Entered', 'Avg %', 'LP Count', 'Flag Count']
     const csvData = filteredData.map((cls) => [
       cls.name,
       cls.teacher,
@@ -49,6 +50,7 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
       cls.gradesEntered,
       `${cls.avgPercentage}%`,
       cls.lpCount,
+      cls.flagCount,
     ])
 
     const csvContent = [headers, ...csvData].map((e) => e.join(',')).join('\n')
@@ -93,13 +95,14 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
                 <TableHead className="font-bold text-center">Grades</TableHead>
                 <TableHead className="font-bold text-center">Average %</TableHead>
                 <TableHead className="font-bold text-center">LP Count</TableHead>
+                <TableHead className="font-bold text-center">Flag Count</TableHead>
                 <TableHead className="text-right font-bold">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     No classes found.
                   </TableCell>
                 </TableRow>
@@ -138,6 +141,16 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
                         )}
                       >
                         {cls.lpCount}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          'font-bold',
+                          cls.flagCount > 0 ? 'text-red-600' : 'text-slate-400',
+                        )}
+                      >
+                        {cls.flagCount}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

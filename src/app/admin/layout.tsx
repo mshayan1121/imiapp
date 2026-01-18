@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
+import { Suspense } from 'react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -24,7 +25,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <DashboardShell
       sidebar={
-        <Sidebar role="admin" email={user.email!} fullName={fullName} userInitials={initials} />
+        <Suspense fallback={<div className="w-20 bg-blue-900 h-screen" />}>
+          <Sidebar role="admin" email={user.email!} fullName={fullName} userInitials={initials} />
+        </Suspense>
       }
     >
       {children}

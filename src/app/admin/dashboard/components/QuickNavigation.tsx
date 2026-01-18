@@ -20,9 +20,9 @@ const navItems = [
     color: 'bg-purple-100 text-purple-600',
   },
   {
-    label: 'All Students',
+    label: 'Student Directory',
     icon: GraduationCap,
-    href: '/admin/students',
+    href: '/admin/students/directory',
     color: 'bg-green-100 text-green-600',
   },
   {

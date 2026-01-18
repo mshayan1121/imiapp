@@ -15,7 +15,6 @@ interface TeacherData {
   id: string
   name: string
   classCount: number
-  gradesEntered: number
   lastActivity: string | null
 }
 
@@ -36,7 +35,6 @@ export function TeacherActivitySummary({ data }: TeacherActivitySummaryProps) {
               <TableRow>
                 <TableHead className="font-bold">Teacher Name</TableHead>
                 <TableHead className="font-bold text-center">Classes</TableHead>
-                <TableHead className="font-bold text-center">Grades Entered</TableHead>
                 <TableHead className="font-bold">Last Activity</TableHead>
                 <TableHead className="font-bold">Status</TableHead>
               </TableRow>
@@ -44,7 +42,7 @@ export function TeacherActivitySummary({ data }: TeacherActivitySummaryProps) {
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                     No teachers found.
                   </TableCell>
                 </TableRow>
@@ -67,16 +65,6 @@ export function TeacherActivitySummary({ data }: TeacherActivitySummaryProps) {
                         <Badge variant="outline" className="bg-slate-50 border-slate-200">
                           {teacher.classCount}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-sm font-black text-slate-900">
-                            {teacher.gradesEntered}
-                          </span>
-                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">
-                            Entries
-                          </span>
-                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-slate-600">

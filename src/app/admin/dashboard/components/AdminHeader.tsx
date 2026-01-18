@@ -28,7 +28,7 @@ export function AdminHeader({ activeTerm }: AdminHeaderProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
-          <Link href="/admin/students">Student</Link>
+          <Link href="/admin/students/directory">Student</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/admin/users">Teacher</Link>

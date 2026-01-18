@@ -47,6 +47,7 @@ export async function getAdminDashboardData() {
 
   // 3. Flagged Students Institute-Wide
   let flaggedCount = 0
+  let totalFlags = 0
   let flagBreakdown = { one: 0, two: 0, three: 0 }
 
   if (activeTerm) {
@@ -72,6 +73,7 @@ export async function getAdminDashboardData() {
       .filter((s) => s.flags > 0)
 
     flaggedCount = flaggedStudents.length
+    totalFlags = flaggedStudents.reduce((acc, s) => acc + s.flags, 0)
     flagBreakdown = {
       one: flaggedStudents.filter((s) => s.flags === 1).length,
       two: flaggedStudents.filter((s) => s.flags === 2).length,
@@ -141,14 +143,25 @@ export async function getAdminDashboardData() {
   // 5. Institute Performance Overview
   let instituteAvg = 0
   let lpPercentage = 0
+  let flagRate = 0
   if (activeTerm) {
     const { data: allGrades } = await supabase
       .from('grades')
-      .select('percentage, is_low_point')
+      .select('percentage, is_low_point, student_id')
       .eq('term_id', activeTerm.id)
 
     if (allGrades && allGrades.length > 0) {
       instituteAvg = allGrades.reduce((acc, g) => acc + Number(g.percentage), 0) / allGrades.length
+      
+      const studentLpCounts: Record<string, number> = {}
+      allGrades.forEach((g) => {
+        if (g.is_low_point) {
+          studentLpCounts[g.student_id] = (studentLpCounts[g.student_id] || 0) + 1
+        }
+      })
+      
+      const flaggedStudentCount = Object.values(studentLpCounts).filter(count => count >= 3).length
+      flagRate = (flaggedStudentCount / (totalStudents || 1)) * 100
       lpPercentage = (allGrades.filter((g) => g.is_low_point).length / allGrades.length) * 100
     }
   }
@@ -170,7 +183,7 @@ export async function getAdminDashboardData() {
 
           const { data: grades } = await supabase
             .from('grades')
-            .select('percentage, is_low_point')
+            .select('percentage, is_low_point, student_id')
             .eq('class_id', cls.id)
             .eq('term_id', activeTerm.id)
 
@@ -180,6 +193,22 @@ export async function getAdminDashboardData() {
               : 0
 
           const lpCount = grades?.filter((g) => g.is_low_point).length || 0
+          
+          // Calculate flags for this class
+          const classStudentLps: Record<string, number> = {}
+          grades?.forEach(g => {
+            if (g.is_low_point) {
+              classStudentLps[g.student_id] = (classStudentLps[g.student_id] || 0) + 1
+            }
+          })
+          
+          let classFlagCount = 0
+          Object.values(classStudentLps).forEach(count => {
+            if (count >= 5) classFlagCount += 3
+            else if (count === 4) classFlagCount += 2
+            else if (count === 3) classFlagCount += 1
+          })
+
           const profile = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
 
           return {
@@ -190,6 +219,7 @@ export async function getAdminDashboardData() {
             gradesEntered: grades?.length || 0,
             avgPercentage: Math.round(avg),
             lpCount,
+            flagCount: classFlagCount,
           }
         }),
       )
@@ -216,7 +246,6 @@ export async function getAdminDashboardData() {
             id: t.id,
             name: t.full_name || 'Unknown',
             classCount: classCount || 0,
-            gradesEntered: teacherGrades?.length || 0,
             lastActivity:
               teacherGrades?.sort(
                 (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -226,6 +255,84 @@ export async function getAdminDashboardData() {
       )
     : []
 
+  // 8. Performance Trends Data
+  let performanceTrends = {
+    performanceData: [] as { term: string; avg: number }[],
+    subjectData: [] as { subject: string; flags: number }[],
+    gradeDistribution: [] as { name: string; value: number; color: string }[]
+  }
+
+  if (activeTerm) {
+    // 8.1 Performance over terms
+    const { data: allTerms } = await supabase
+      .from('terms')
+      .select('id, name')
+      .order('start_date', { ascending: true })
+    
+    if (allTerms) {
+      performanceTrends.performanceData = await Promise.all(allTerms.map(async (term) => {
+        const { data: termGrades } = await supabase
+          .from('grades')
+          .select('percentage')
+          .eq('term_id', term.id)
+        
+        const avg = termGrades && termGrades.length > 0 
+          ? termGrades.reduce((acc, g) => acc + Number(g.percentage), 0) / termGrades.length 
+          : 0
+        
+        return { term: term.name, avg: Math.round(avg) }
+      }))
+    }
+
+    // 8.2 Flags by subject
+    const { data: subjectGrades } = await supabase
+      .from('grades')
+      .select(`
+        is_low_point,
+        student_id,
+        courses (name)
+      `)
+      .eq('term_id', activeTerm.id)
+      .eq('is_low_point', true)
+
+    if (subjectGrades) {
+      const subjectLpMap: Record<string, Record<string, number>> = {} // subject -> student_id -> lp_count
+      subjectGrades.forEach(g => {
+        const subjectName = (g.courses as any)?.name || 'Unknown'
+        if (!subjectLpMap[subjectName]) subjectLpMap[subjectName] = {}
+        subjectLpMap[subjectName][g.student_id] = (subjectLpMap[subjectName][g.student_id] || 0) + 1
+      })
+
+      performanceTrends.subjectData = Object.entries(subjectLpMap).map(([subject, students]) => {
+        let subjectFlagCount = 0
+        Object.values(students).forEach(count => {
+          if (count >= 5) subjectFlagCount += 3
+          else if (count === 4) subjectFlagCount += 2
+          else if (count === 3) subjectFlagCount += 1
+        })
+        return { subject, flags: subjectFlagCount }
+      })
+    }
+
+    // 8.3 Grade distribution
+    const { data: distGrades } = await supabase
+      .from('grades')
+      .select('percentage')
+      .eq('term_id', activeTerm.id)
+
+    if (distGrades) {
+      const low = distGrades.filter(g => g.percentage < 60).length
+      const mid = distGrades.filter(g => g.percentage >= 60 && g.percentage <= 80).length
+      const high = distGrades.filter(g => g.percentage > 80).length
+
+      performanceTrends.gradeDistribution = [
+        { name: '< 60%', value: low, color: '#ef4444' },
+        { name: '60-80%', value: mid, color: '#f59e0b' },
+        { name: '> 80%', value: high, color: '#22c55e' },
+      ]
+    }
+  }
+
   return {
     activeTerm,
     stats: {
@@ -234,15 +341,17 @@ export async function getAdminDashboardData() {
       totalClasses: totalClasses || 0,
       totalCourses: totalCourses || 0,
       totalGrades: totalGrades || 0,
+      totalFlags: totalFlags,
     },
     flagBreakdown,
     flaggedCount,
     activities,
     institutePerformance: {
       instituteAvg: Math.round(instituteAvg),
-      lpPercentage: Math.round(lpPercentage),
+      flagRate: Math.round(flagRate),
     },
     classPerformance,
     teacherSummary,
+    performanceTrends,
   }
 }

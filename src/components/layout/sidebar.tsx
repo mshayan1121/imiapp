@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   Home,
   Users,
@@ -30,11 +30,13 @@ interface SidebarProps {
 
 export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentStatus = searchParams.get('status')
 
   const adminItems = [
     { href: '/admin/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/admin/users', icon: Users, label: 'Users' },
-    { href: '/admin/students', icon: GraduationCap, label: 'Students' },
+    { href: '/admin/students/directory', icon: GraduationCap, label: 'Student Directory' },
     { href: '/admin/classes', icon: School, label: 'Classes' },
     { href: '/admin/curriculum', icon: BookOpen, label: 'Curriculum' },
     { href: '/admin/terms', icon: Calendar, label: 'Terms' },
@@ -43,6 +45,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
 
   const teacherItems = [
     { href: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
+    { href: '/teacher/students', icon: Users, label: 'My Students' },
     { href: '/teacher/classes', icon: School, label: 'My Classes' },
     { href: '/teacher/grades/entry', icon: Edit, label: 'Enter Grades' },
     { href: '/teacher/grades', icon: ClipboardList, label: 'View Grades' },
@@ -70,7 +73,30 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto py-4 no-scrollbar">
           <div className="space-y-1">
             {items.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              const [hrefPath, hrefQuery] = item.href.split('?')
+              const currentQuery = searchParams.toString()
+              
+              let isActive = false
+              if (hrefQuery) {
+                // Match items with query params exactly
+                isActive = pathname === hrefPath && currentQuery === hrefQuery
+              } else {
+                // Match items without query params
+                if (currentQuery) {
+                  // If URL has query, this item is only active if it matches path 
+                  // AND there isn't a more specific item for this query
+                  const hasMoreSpecificItem = items.some(i => i.href === `${pathname}?${currentQuery}`)
+                  isActive = pathname === hrefPath && !hasMoreSpecificItem
+                } else {
+                  // Standard matching, but handle the grades/entry overlap
+                  if (item.href === '/teacher/grades') {
+                    isActive = pathname === '/teacher/grades'
+                  } else {
+                    isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                  }
+                }
+              }
+
               return (
                 <Tooltip key={item.href}>
                   <TooltipTrigger asChild>
