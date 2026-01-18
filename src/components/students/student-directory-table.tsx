@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ColumnDef,
@@ -320,6 +320,11 @@ export function StudentDirectoryTable({
 
   const selectedCount = Object.keys(rowSelection).length
 
+  // Get actual student IDs from selected rows
+  const getSelectedStudentIds = () => {
+    return table.getFilteredSelectedRowModel().rows.map((row) => row.original.id)
+  }
+
   return (
     <div className="space-y-4">
       {selectedCount > 0 && (
@@ -328,10 +333,10 @@ export function StudentDirectoryTable({
           <div className="ml-auto flex gap-2">
             {role === 'admin' && (
               <>
-                <Button size="sm" variant="outline" onClick={() => onBulkEnroll?.(Object.keys(rowSelection))}>
+                <Button size="sm" variant="outline" onClick={() => onBulkEnroll?.(getSelectedStudentIds())}>
                   Enroll in Class
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => onBulkDelete?.(Object.keys(rowSelection))}>
+                <Button size="sm" variant="destructive" onClick={() => onBulkDelete?.(getSelectedStudentIds())}>
                   Delete Selected
                 </Button>
               </>
@@ -359,9 +364,8 @@ export function StudentDirectoryTable({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <>
+                <Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     className={cn(expandedRows[row.original.id] && "bg-muted/30 border-b-0")}
                   >
@@ -426,7 +430,7 @@ export function StudentDirectoryTable({
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               ))
             ) : (
               <TableRow>

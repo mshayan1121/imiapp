@@ -16,6 +16,16 @@ import { Button } from '@/components/ui/button'
 import { exportToCSV } from '@/utils/export-csv'
 import { StudentDialog } from '@/components/admin/student-dialog'
 import { BulkUploadStudentsDialog } from '@/components/admin/bulk-upload-students-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface AdminDirectoryClientProps {
   initialData: {
@@ -37,6 +47,8 @@ export function AdminDirectoryClient({
   const [totalCount, setTotalCount] = useState(initialData.count)
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[] | null>(null)
   const [filters, setFilters] = useState<StudentDirectoryFilters>({
     search: '',
     year_group: '',
@@ -92,27 +104,37 @@ export function AdminDirectoryClient({
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) return
+    setDeleteId(id)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return
     
-    const result = await deleteStudent(id)
+    const result = await deleteStudent(deleteId)
     if (result.error) {
       toast.error(result.error)
     } else {
       toast.success('Student deleted successfully')
       fetchData(filters, currentPage)
     }
+    setDeleteId(null)
   }
 
   const handleBulkDelete = async (ids: string[]) => {
-    if (!confirm(`Are you sure you want to delete ${ids.length} students? This action cannot be undone.`)) return
+    setBulkDeleteIds(ids)
+  }
+
+  const handleConfirmBulkDelete = async () => {
+    if (!bulkDeleteIds) return
     
-    const result = await bulkDeleteStudents(ids)
+    const result = await bulkDeleteStudents(bulkDeleteIds)
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(`${ids.length} students deleted successfully`)
+      toast.success(`${bulkDeleteIds.length} students deleted successfully`)
       fetchData(filters, currentPage)
     }
+    setBulkDeleteIds(null)
   }
 
   const handleExport = () => {
@@ -172,6 +194,48 @@ export function AdminDirectoryClient({
           onBulkDelete={handleBulkDelete}
         />
       </Section>
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the student record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={!!bulkDeleteIds} onOpenChange={(open) => !open && setBulkDeleteIds(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {bulkDeleteIds?.length} student record(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {bulkDeleteIds?.length} Students
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   )
 }

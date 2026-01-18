@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
   Home,
@@ -64,8 +65,17 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
     <aside className="fixed left-0 top-0 h-screen w-20 bg-blue-900 flex flex-col z-50 border-r border-blue-800">
       {/* Logo Section */}
       <div className="h-20 flex items-center justify-center border-b border-blue-800 shrink-0">
-        <div className="flex items-center justify-center">
-          <span className="text-white text-2xl font-bold tracking-tighter">IMI</span>
+        <div className="flex items-center justify-center p-2">
+          <div className="rounded-full bg-white p-2 flex items-center justify-center">
+            <Image
+              src="/favicon and mini sidebar logo.png"
+              alt="Improve ME Institute Logo"
+              width={48}
+              height={48}
+              className="object-contain"
+              priority
+            />
+          </div>
         </div>
       </div>
 

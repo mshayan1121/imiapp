@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-export const alt = 'IMI - Interactive Mathematics Interface'
+export const alt = 'Improve ME Institute App'
 export const size = {
   width: 1200,
   height: 630,
@@ -27,24 +27,15 @@ export default async function Image() {
       >
         <div
           style={{
-            fontSize: 128,
+            fontSize: 96,
             fontWeight: 'bold',
             marginBottom: 20,
             display: 'flex',
             alignItems: 'center',
+            textAlign: 'center',
           }}
         >
-          IMI
-        </div>
-        <div
-          style={{
-            fontSize: 48,
-            display: 'flex',
-            alignItems: 'center',
-            opacity: 0.9,
-          }}
-        >
-          Interactive Mathematics Interface
+          Improve ME Institute App
         </div>
       </div>
     ),

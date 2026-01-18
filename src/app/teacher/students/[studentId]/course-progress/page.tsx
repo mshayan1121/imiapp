@@ -90,6 +90,7 @@ export default function StudentCourseProgressPage({ params }: PageProps) {
     workType: 'all',
     status: 'all',
   })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (studentId && classId && courseId && termId) {
@@ -100,6 +101,7 @@ export default function StudentCourseProgressPage({ params }: PageProps) {
   async function loadData() {
     try {
       setLoading(true)
+      setError(null)
       const res = await getCourseProgressData(studentId, classId!, courseId!, termId!)
       setData(res)
       // Auto-expand topics that have grades
@@ -109,19 +111,60 @@ export default function StudentCourseProgressPage({ params }: PageProps) {
         )
         .map((t: any) => t.id)
       setExpandedTopics(topicsWithGrades)
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error('Failed to load progress data')
+      const errorMessage = error?.message || 'Failed to load progress data'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
   if (loading) {
-    return <div className="p-8">Loading...</div> // Replace with Skeleton later
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading course progress...</p>
+          </div>
+        </div>
+      </PageContainer>
+    )
   }
 
-  if (!data) return null
+  if (error) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center space-y-4">
+              <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
+              <div>
+                <h2 className="text-lg font-bold">Failed to Load Progress</h2>
+                <p className="text-muted-foreground mt-2">{error}</p>
+              </div>
+              <Button onClick={() => loadData()}>Try Again</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
+    )
+  }
+
+  if (!data) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">No data available</p>
+            <Button onClick={() => loadData()}>Reload</Button>
+          </div>
+        </div>
+      </PageContainer>
+    )
+  }
 
   const { studentInfo, topics, grades: allGrades } = data
 

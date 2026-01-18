@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'IMI - Interactive Mathematics Interface',
-    template: '%s | IMI'
+    default: 'Improve ME Institute App',
+    template: '%s | Improve ME Institute'
   },
   description: 'An interactive learning platform for mathematics education.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon and mini sidebar logo.png',
   },
 }
 

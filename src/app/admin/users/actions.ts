@@ -127,3 +127,35 @@ export async function deleteUser(userId: string) {
     return { error: 'An unexpected error occurred. Please try again.' }
   }
 }
+
+export async function bulkDeleteUsers(userIds: string[]) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
+
+    const supabaseAdmin = createAdminClient()
+
+    // Delete users one by one since Supabase admin API doesn't support bulk delete
+    const errors: string[] = []
+    for (const userId of userIds) {
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (error) {
+        errors.push(error.message)
+      }
+    }
+
+    if (errors.length > 0) {
+      console.error('Bulk Delete Errors:', errors)
+      return { error: `Failed to delete ${errors.length} of ${userIds.length} users. ` + errors[0] }
+    }
+
+    revalidatePath('/admin/users')
+    return { success: true }
+  } catch (err) {
+    console.error('Unexpected Error:', err)
+    return { error: 'An unexpected error occurred. Please try again.' }
+  }
+}

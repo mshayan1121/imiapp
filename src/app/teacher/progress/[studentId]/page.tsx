@@ -55,24 +55,73 @@ export default function StudentProgressDetailPage({
   const { term } = use(searchParams)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (studentId && term) {
-      getStudentDetailProgress(studentId, term)
-        .then(setData)
-        .finally(() => setLoading(false))
+      loadData()
     }
   }, [studentId, term])
 
+  async function loadData() {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await getStudentDetailProgress(studentId, term!)
+      setData(res)
+    } catch (error: any) {
+      console.error(error)
+      const errorMessage = error?.message || 'Failed to load progress data'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageContainer>
+        <div className="flex h-[80vh] items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="text-muted-foreground">Loading progress data...</p>
+          </div>
+        </div>
+      </PageContainer>
     )
   }
 
-  if (!data) return null
+  if (error) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center space-y-4">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+              <div>
+                <h2 className="text-lg font-bold">Failed to Load Progress</h2>
+                <p className="text-muted-foreground mt-2">{error}</p>
+              </div>
+              <Button onClick={() => loadData()}>Try Again</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
+    )
+  }
+
+  if (!data) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">No data available</p>
+            <Button onClick={() => loadData()}>Reload</Button>
+          </div>
+        </div>
+      </PageContainer>
+    )
+  }
 
   const chartData = data.gradeTimeline.map((g: any) => ({
     date: format(new Date(g.assessed_date), 'dd MMM'),

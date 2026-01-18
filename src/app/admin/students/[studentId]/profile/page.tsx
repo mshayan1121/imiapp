@@ -9,10 +9,8 @@ import {
   deleteStudentNote,
   updateStudentContact,
   updateStudentInfo,
-  getCurriculumForCourse,
   logParentContact
 } from './actions'
-import { upsertGrade } from '../../../progress/actions'
 import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
@@ -112,7 +110,7 @@ export default function StudentProfilePage() {
                 <h2 className="text-lg font-bold">Invalid Student ID</h2>
                 <p className="text-muted-foreground mt-2">The student ID could not be found in the URL.</p>
               </div>
-              <Button onClick={() => router.push('/teacher/students')}>Go Back</Button>
+              <Button onClick={() => router.push('/admin/students')}>Go Back</Button>
             </CardContent>
           </Card>
         </div>
@@ -138,21 +136,6 @@ export default function StudentProfilePage() {
     notes: ''
   })
 
-  const [isAddGradeDialogOpen, setIsAddGradeDialogOpen] = useState(false)
-  const [addGradeForm, setAddGradeForm] = useState<any>({
-    class_id: '',
-    course_id: '',
-    topic_id: '',
-    subtopic_id: '',
-    work_type: 'classwork',
-    work_subtype: 'worksheet',
-    marks_obtained: '',
-    total_marks: '',
-    assessed_date: format(new Date(), 'yyyy-MM-dd'),
-    attempt_number: 1,
-    notes: ''
-  })
-  const [availableTopics, setAvailableTopics] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -379,66 +362,8 @@ export default function StudentProfilePage() {
     }
   }
 
-  const handleCourseChange = async (courseId: string) => {
-    const ec = enrolledClasses.find((e: any) => e.course_id === courseId)
-    setAddGradeForm({
-      ...addGradeForm,
-      course_id: courseId,
-      class_id: ec?.class_id || '',
-      topic_id: '',
-      subtopic_id: ''
-    })
-    if (courseId) {
-      const topics = await getCurriculumForCourse(courseId)
-      setAvailableTopics(topics)
-    } else {
-      setAvailableTopics([])
-    }
-  }
-
-  const handleAddGradeSubmit = async () => {
-    try {
-      if (!addGradeForm.class_id || !addGradeForm.course_id || !addGradeForm.topic_id || !addGradeForm.marks_obtained || !addGradeForm.total_marks) {
-        toast.error('Please fill in all required fields')
-        return
-      }
-
-      await upsertGrade({
-        ...addGradeForm,
-        student_id: studentId,
-        term_id: activeTerm.id,
-        marks_obtained: Number(addGradeForm.marks_obtained),
-        total_marks: Number(addGradeForm.total_marks)
-      })
-
-      setIsAddGradeDialogOpen(false)
-      toast.success('Grade added successfully')
-      loadData()
-      // Reset form
-      setAddGradeForm({
-        class_id: '',
-        course_id: '',
-        topic_id: '',
-        subtopic_id: '',
-        work_type: 'classwork',
-        work_subtype: 'worksheet',
-        marks_obtained: '',
-        total_marks: '',
-        assessed_date: format(new Date(), 'yyyy-MM-dd'),
-        attempt_number: 1,
-        notes: ''
-      })
-    } catch (error) {
-      console.error(error)
-      toast.error('Failed to add grade')
-    }
-  }
-
   const headerAction = (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size="sm" onClick={() => setIsAddGradeDialogOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" /> Add Grade
-      </Button>
       <Button variant="outline" size="sm" onClick={() => window.print()}>
         <Printer className="mr-2 h-4 w-4" /> Generate Report
       </Button>
@@ -450,16 +375,8 @@ export default function StudentProfilePage() {
 
   const breadcrumbs = (
     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-      <Link href="/teacher/classes" className="hover:text-primary">My Classes</Link>
+      <Link href="/admin/students" className="hover:text-primary">Students</Link>
       <ChevronLeft className="h-4 w-4 rotate-180" />
-      {enrolledClasses[0] && (
-        <>
-          <Link href={`/teacher/classes/${enrolledClasses[0].class_id}`} className="hover:text-primary">
-            {enrolledClasses[0].classes.name}
-          </Link>
-          <ChevronLeft className="h-4 w-4 rotate-180" />
-        </>
-      )}
       <span className="text-foreground font-medium">{student.name}</span>
       <ChevronLeft className="h-4 w-4 rotate-180" />
       <span className="text-foreground font-medium">Profile</span>
@@ -518,16 +435,24 @@ export default function StudentProfilePage() {
               <div className="flex flex-col gap-2 w-full md:w-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full">View Course Progress <ChevronDown className="ml-2 h-4 w-4" /></Button>
+                    <Button className="w-full" disabled={enrolledClasses.length === 0}>
+                      View Course Progress <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[200px]">
-                    {enrolledClasses.map((ec: any) => (
-                      <DropdownMenuItem key={ec.id} asChild>
-                        <Link href={`/teacher/students/${studentId}/course-progress?classId=${ec.class_id}&courseId=${ec.course_id}&termId=${activeTerm.id}`}>
-                          {ec.courses.name}
-                        </Link>
+                    {enrolledClasses.length > 0 ? (
+                      enrolledClasses.map((ec: any) => (
+                        <DropdownMenuItem key={ec.id} asChild>
+                          <Link href={`/admin/students/${studentId}/course-progress?classId=${ec.class_id}&courseId=${ec.course_id}&termId=${activeTerm.id}`}>
+                            {ec.courses.name}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem disabled className="text-muted-foreground text-xs text-center justify-center">
+                        No enrolled courses
                       </DropdownMenuItem>
-                    ))}
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button variant="outline" className="w-full" onClick={() => setIsContactDialogOpen(true)}>
@@ -659,7 +584,7 @@ export default function StudentProfilePage() {
                   </div>
                   
                   <Button asChild variant="ghost" className="w-full mt-4 text-primary">
-                    <Link href={`/teacher/students/${studentId}/course-progress?classId=${ec.class_id}&courseId=${ec.course_id}&termId=${activeTerm.id}`}>
+                    <Link href={`/admin/students/${studentId}/course-progress?classId=${ec.class_id}&courseId=${ec.course_id}&termId=${activeTerm.id}`}>
                       View Progress Report <TrendingUp className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -720,7 +645,7 @@ export default function StudentProfilePage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/teacher/students/${studentId}/course-progress?courseId=${cp.courseId}&termId=${activeTerm.id}`}>
+                      <Link href={`/admin/students/${studentId}/course-progress?courseId=${cp.courseId}&termId=${activeTerm.id}`}>
                         View Details
                       </Link>
                     </Button>
@@ -753,7 +678,7 @@ export default function StudentProfilePage() {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" className="w-full mt-4 text-xs h-8" asChild>
-                  <Link href={`/teacher/students/${studentId}/course-progress?courseId=${area.courseId}&termId=${activeTerm.id}`}>
+                  <Link href={`/admin/students/${studentId}/course-progress?courseId=${area.courseId}&termId=${activeTerm.id}`}>
                     View in Progress Report
                   </Link>
                 </Button>
@@ -806,7 +731,7 @@ export default function StudentProfilePage() {
               ))}
             </div>
             <Button variant="ghost" className="w-full mt-8" asChild>
-              <Link href={`/teacher/students/${studentId}/grades`}>View All Grade History</Link>
+              <Link href={`/admin/students/${studentId}/grades`}>View All Grade History</Link>
             </Button>
           </CardContent>
         </Card>
@@ -1272,148 +1197,6 @@ export default function StudentProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* QUICK ADD GRADE DIALOG */}
-      <Dialog open={isAddGradeDialogOpen} onOpenChange={setIsAddGradeDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Quick Add Grade - {student.name}</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Select Course</Label>
-                <Select value={addGradeForm.course_id} onValueChange={handleCourseChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose course..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {enrolledClasses.map((ec: any) => (
-                      <SelectItem key={ec.course_id} value={ec.course_id}>
-                        {ec.courses.name} ({ec.classes.name})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Topic</Label>
-                <Select 
-                  disabled={!addGradeForm.course_id} 
-                  value={addGradeForm.topic_id} 
-                  onValueChange={(v) => setAddGradeForm({...addGradeForm, topic_id: v, subtopic_id: ''})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select topic..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTopics.map((topic: any) => (
-                      <SelectItem key={topic.id} value={topic.id}>{topic.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Subtopic (Optional)</Label>
-                <Select 
-                  disabled={!addGradeForm.topic_id} 
-                  value={addGradeForm.subtopic_id} 
-                  onValueChange={(v) => setAddGradeForm({...addGradeForm, subtopic_id: v})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subtopic..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTopics.find(t => t.id === addGradeForm.topic_id)?.subtopics.map((sub: any) => (
-                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Marks Obtained</Label>
-                  <Input 
-                    type="number" 
-                    value={addGradeForm.marks_obtained} 
-                    onChange={(e) => setAddGradeForm({...addGradeForm, marks_obtained: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Total Marks</Label>
-                  <Input 
-                    type="number" 
-                    value={addGradeForm.total_marks} 
-                    onChange={(e) => setAddGradeForm({...addGradeForm, total_marks: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Work Type</Label>
-                  <Select value={addGradeForm.work_type} onValueChange={(v) => setAddGradeForm({...addGradeForm, work_type: v})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="classwork">Classwork</SelectItem>
-                      <SelectItem value="homework">Homework</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Work Subtype</Label>
-                  <Select value={addGradeForm.work_subtype} onValueChange={(v) => setAddGradeForm({...addGradeForm, work_subtype: v})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="worksheet">Worksheet</SelectItem>
-                      <SelectItem value="pastpaper">Past Paper</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Assessed Date</Label>
-                <Input 
-                  type="date" 
-                  value={addGradeForm.assessed_date} 
-                  onChange={(e) => setAddGradeForm({...addGradeForm, assessed_date: e.target.value})}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Attempt Number</Label>
-                <Input 
-                  type="number" 
-                  value={addGradeForm.attempt_number} 
-                  onChange={(e) => setAddGradeForm({...addGradeForm, attempt_number: Number(e.target.value)})}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Notes (Optional)</Label>
-                <Textarea 
-                  className="h-[80px]" 
-                  value={addGradeForm.notes} 
-                  onChange={(e) => setAddGradeForm({...addGradeForm, notes: e.target.value})}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddGradeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddGradeSubmit}>Add Grade</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   )
 }
