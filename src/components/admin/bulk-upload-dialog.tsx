@@ -339,14 +339,14 @@ export function BulkUploadDialog() {
           Bulk Upload Teachers
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl w-full h-[90vh] max-h-[90vh] p-0 overflow-hidden flex flex-col">
         <VisuallyHidden>
           <DialogTitle>Bulk Upload Teachers</DialogTitle>
         </VisuallyHidden>
         
         <div className="flex flex-col h-full">
           {/* Fixed Header */}
-          <div className="p-6 pb-2 border-b">
+          <div className="p-8 pb-2 border-b">
             {showResults ? (
                <PageHeader 
                 title="Import Results" 
@@ -361,7 +361,7 @@ export function BulkUploadDialog() {
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 pt-2">
+          <div className="flex-1 overflow-y-auto p-8 pt-4">
             {isImporting && (
               <div className="mb-6">
                 <ImportProgress 

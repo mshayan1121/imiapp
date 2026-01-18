@@ -147,39 +147,37 @@ export function PreviewTable({
       </div>
 
       <div className="border rounded-md max-h-[70vh] overflow-auto relative">
-        <Table>
+        <Table className="min-w-[1000px]">
           <TableHeader className="bg-gray-50 sticky top-0 z-10">
             <TableRow>
-              <TableHead className="w-[50px]">
+              <TableHead className="w-[50px] px-4">
                 <Checkbox 
                   checked={isAllSelected}
                   onCheckedChange={handleSelectAll}
                   disabled={allSelectableCount === 0}
-                  // Indeterminate state is not directly supported by this Checkbox component prop, 
-                  // but we handle the logic. 
                 />
               </TableHead>
-              <TableHead className="w-[80px] cursor-pointer" onClick={() => handleSort('rowNumber')}>
+              <TableHead className="w-[60px] px-2 cursor-pointer" onClick={() => handleSort('rowNumber')}>
                 <div className="flex items-center gap-1">
                   Row # <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('fullName')}>
+              <TableHead className="min-w-[200px] px-4 cursor-pointer" onClick={() => handleSort('fullName')}>
                 <div className="flex items-center gap-1">
                   Name <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('email')}>
+              <TableHead className="min-w-[250px] px-4 cursor-pointer" onClick={() => handleSort('email')}>
                 <div className="flex items-center gap-1">
                   Email <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
+              <TableHead className="w-[150px] px-4 cursor-pointer" onClick={() => handleSort('status')}>
                 <div className="flex items-center gap-1">
                   Status <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead>Validation Details</TableHead>
+              <TableHead className="px-4">Validation Details</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,26 +190,26 @@ export function PreviewTable({
             ) : (
               sortedTeachers.map((teacher) => (
                 <TableRow key={teacher.rowNumber} className="hover:bg-gray-50/50">
-                  <TableCell>
+                  <TableCell className="px-4">
                     <Checkbox 
                       checked={selectedRows.has(teacher.rowNumber)}
                       onCheckedChange={(checked) => handleSelectRow(teacher.rowNumber, checked as boolean)}
                       disabled={teacher.validationStatus !== 'new'}
                     />
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
+                  <TableCell className="px-2 text-muted-foreground text-xs">
                     {teacher.rowNumber}
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="px-4 font-medium">
                     {teacher.fullName || <span className="text-red-400 italic">No name provided</span>}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="px-4 font-mono text-sm break-all">
                     {teacher.email || <span className="text-red-400 italic">No email</span>}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-4">
                     {getStatusBadge(teacher.validationStatus)}
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="px-4 text-sm">
                     {teacher.errors.length > 0 ? (
                       <div className="flex flex-col gap-1">
                         {teacher.errors.map((error, i) => (
