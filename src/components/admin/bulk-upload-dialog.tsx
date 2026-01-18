@@ -149,8 +149,21 @@ export function BulkUploadDialog() {
         return foundKey ? row[foundKey] : ''
       }
 
-      const firstName = String(getCol('first name') || getCol('firstname') || '').trim()
-      const lastName = String(getCol('last name') || getCol('lastname') || '').trim()
+      let firstName = String(getCol('first name') || getCol('firstname') || '').trim()
+      let lastName = String(getCol('last name') || getCol('lastname') || '').trim()
+      const fullNameCol = String(getCol('name') || getCol('full name') || getCol('fullname') || '').trim()
+
+      // If first/last name are missing but name column exists, try to split it
+      if ((!firstName || !lastName) && fullNameCol) {
+        const parts = fullNameCol.split(/\s+/)
+        if (parts.length >= 2) {
+          if (!firstName) firstName = parts[0]
+          if (!lastName) lastName = parts.slice(1).join(' ')
+        } else if (parts.length === 1) {
+          if (!firstName) firstName = parts[0]
+        }
+      }
+
       const email = String(getCol('email') || '').trim().toLowerCase()
       const status = String(getCol('status') || 'Active').trim()
       const isActive = status.toLowerCase() === 'active'
