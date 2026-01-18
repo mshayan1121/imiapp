@@ -17,6 +17,7 @@ import {
   TrendingUp,
   LogOut,
   Upload,
+  FileText,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -43,6 +44,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
     { href: '/admin/curriculum', icon: BookOpen, label: 'Curriculum' },
     { href: '/admin/terms', icon: Calendar, label: 'Terms' },
     { href: '/admin/flags', icon: AlertTriangle, label: 'Flags' },
+    { href: '/admin/reports', icon: FileText, label: 'Reports' },
   ]
 
   const teacherItems = [
@@ -53,6 +55,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
     { href: '/teacher/grades', icon: ClipboardList, label: 'View Grades' },
     { href: '/teacher/progress', icon: TrendingUp, label: 'Student Progress' },
     { href: '/teacher/progress?status=flagged', icon: AlertTriangle, label: 'Flagged Students' },
+    { href: '/teacher/reports', icon: FileText, label: 'Reports' },
   ]
 
   const items = role === 'admin' ? adminItems : teacherItems
