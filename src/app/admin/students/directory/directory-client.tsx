@@ -15,6 +15,7 @@ import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { exportToCSV } from '@/utils/export-csv'
 import { StudentDialog } from '@/components/admin/student-dialog'
+import { BulkUploadStudentsDialog } from '@/components/admin/bulk-upload-students-dialog'
 
 interface AdminDirectoryClientProps {
   initialData: {
@@ -138,6 +139,7 @@ export function AdminDirectoryClient({
         description="View and manage all students across the institute"
         action={
           <div className="flex gap-2">
+            <BulkUploadStudentsDialog />
             <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export List

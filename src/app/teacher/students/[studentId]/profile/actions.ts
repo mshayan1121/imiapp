@@ -50,8 +50,22 @@ export async function getStudentProfileData(studentId: string) {
 
   if (classesError) throw classesError
 
+  const normalizedEnrolledClasses = (enrolledClasses || []).map((ec: any) => ({
+    ...ec,
+    classes: ec.classes ? {
+      ...(Array.isArray(ec.classes) ? ec.classes[0] : ec.classes),
+      teacher: ec.classes.teacher ? (Array.isArray(ec.classes.teacher) ? ec.classes.teacher[0] : ec.classes.teacher) : null
+    } : null,
+    courses: ec.courses ? {
+      ...(Array.isArray(ec.courses) ? ec.courses[0] : ec.courses),
+      qualifications: ec.courses.qualifications ? (Array.isArray(ec.courses.qualifications) ? ec.courses.qualifications[0] : ec.courses.qualifications) : null,
+      boards: ec.courses.boards ? (Array.isArray(ec.courses.boards) ? ec.courses.boards[0] : ec.courses.boards) : null,
+      subjects: ec.courses.subjects ? (Array.isArray(ec.courses.subjects) ? ec.courses.subjects[0] : ec.courses.subjects) : null,
+    } : null
+  }))
+
   // 3. All grades for student (current term)
-  const { data: grades, error: gradesError } = await supabase
+  const { data: gradesData, error: gradesError } = await supabase
     .from('grades')
     .select(`
       *,
@@ -71,6 +85,18 @@ export async function getStudentProfileData(studentId: string) {
 
   if (gradesError) throw gradesError
 
+  const normalizedGrades = (gradesData || []).map((g: any) => ({
+    ...g,
+    topics: g.topics ? (Array.isArray(g.topics) ? g.topics[0] : g.topics) : null,
+    subtopics: g.subtopics ? (Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics) : null,
+    courses: g.courses ? {
+      ...(Array.isArray(g.courses) ? g.courses[0] : g.courses),
+      qualifications: g.courses.qualifications ? (Array.isArray(g.courses.qualifications) ? g.courses.qualifications[0] : g.courses.qualifications) : null,
+      boards: g.courses.boards ? (Array.isArray(g.courses.boards) ? g.courses.boards[0] : g.courses.boards) : null,
+      subjects: g.courses.subjects ? (Array.isArray(g.courses.subjects) ? g.courses.subjects[0] : g.courses.subjects) : null,
+    } : null
+  }))
+
   // 4. Contact information
   const { data: contacts, error: contactsError } = await supabase
     .from('student_contacts')
@@ -80,7 +106,7 @@ export async function getStudentProfileData(studentId: string) {
   if (contactsError) throw contactsError
 
   // 5. Teacher notes
-  const { data: notes, error: notesError } = await supabase
+  const { data: notesData, error: notesError } = await supabase
     .from('student_notes')
     .select(`
       *,
@@ -94,12 +120,17 @@ export async function getStudentProfileData(studentId: string) {
 
   if (notesError) throw notesError
 
+  const normalizedNotes = (notesData || []).map((n: any) => ({
+    ...n,
+    profiles: n.profiles ? (Array.isArray(n.profiles) ? n.profiles[0] : n.profiles) : null
+  }))
+
   return {
     student,
-    enrolledClasses,
-    grades,
+    enrolledClasses: normalizedEnrolledClasses,
+    grades: normalizedGrades,
     contacts,
-    notes,
+    notes: normalizedNotes,
     activeTerm
   }
 }

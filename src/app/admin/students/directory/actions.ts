@@ -97,7 +97,7 @@ export async function getDirectoryData(
     query = query.not('id', 'in', `(${ids.join(',')})`)
   }
 
-  const { data: studentsData, count, error: studentsError } = await query
+  const { data: studentsDataRaw, count, error: studentsError } = await query
     .order('name', { ascending: true })
     .range(from, to)
 
@@ -105,12 +105,21 @@ export async function getDirectoryData(
     return { students: [], count: 0, error: studentsError.message }
   }
 
+  const studentsData = (studentsDataRaw || []).map((s: any) => ({
+    ...s,
+    class_students: (s.class_students || []).map((cs: any) => ({
+      ...cs,
+      class: Array.isArray(cs.class) ? cs.class[0] : cs.class,
+      course: Array.isArray(cs.course) ? cs.course[0] : cs.course,
+    }))
+  }))
+
   // 5. Fetch additional data (grades and profiles for teachers)
   const studentIds = studentsData.map(s => s.id)
   
   // Get all teacher IDs from the classes
   const teacherIds = Array.from(new Set(
-    studentsData.flatMap(s => s.class_students.map((cs: any) => cs.class.teacher_id))
+    studentsData.flatMap(s => s.class_students.map((cs: any) => cs.class?.teacher_id))
   )).filter(Boolean) as string[]
 
   const [gradesRes, profilesRes] = await Promise.all([
@@ -140,8 +149,10 @@ export async function getDirectoryData(
     const flagCount = lowPoints >= 5 ? 3 : lowPoints === 4 ? 2 : lowPoints === 3 ? 1 : 0
 
     let status: 'On Track' | 'At Risk' | 'Struggling' = 'On Track'
-    if (avgPercentage < 70) status = 'Struggling'
-    else if (avgPercentage < 80) status = 'At Risk'
+    if (totalGrades > 0) {
+      if (avgPercentage < 70) status = 'Struggling'
+      else if (avgPercentage < 80) status = 'At Risk'
+    }
 
     const formattedClassStudents = student.class_students.map((cs: any) => {
       const teacherProfile = profilesData?.find(p => p.id === cs.class.teacher_id)

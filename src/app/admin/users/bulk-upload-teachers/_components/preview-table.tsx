@@ -147,7 +147,7 @@ export function PreviewTable({
       </div>
 
       <div className="border rounded-md max-h-[70vh] overflow-auto relative">
-        <Table className="min-w-[1000px]">
+        <Table className="min-w-[1200px]">
           <TableHeader className="bg-gray-50 sticky top-0 z-10">
             <TableRow>
               <TableHead className="w-[50px] px-4">
@@ -162,12 +162,12 @@ export function PreviewTable({
                   Row # <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="min-w-[200px] px-4 cursor-pointer" onClick={() => handleSort('fullName')}>
+              <TableHead className="min-w-[250px] px-4 cursor-pointer" onClick={() => handleSort('fullName')}>
                 <div className="flex items-center gap-1">
                   Name <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="min-w-[250px] px-4 cursor-pointer" onClick={() => handleSort('email')}>
+              <TableHead className="min-w-[300px] px-4 cursor-pointer" onClick={() => handleSort('email')}>
                 <div className="flex items-center gap-1">
                   Email <ArrowUpDown className="h-3 w-3" />
                 </div>

@@ -22,7 +22,7 @@ export async function getStudentDetailProgress(studentId: string, termId: string
   const supabase = await createClient()
 
   // Get student info
-  const { data: studentInfo } = await supabase
+  const { data: studentData } = await supabase
     .from('students')
     .select(
       `
@@ -36,8 +36,17 @@ export async function getStudentDetailProgress(studentId: string, termId: string
     .eq('id', studentId)
     .single()
 
+  const studentInfo = studentData ? {
+    ...studentData,
+    class_students: (studentData as any).class_students?.map((cs: any) => ({
+      ...cs,
+      classes: Array.isArray(cs.classes) ? cs.classes[0] : cs.classes,
+      courses: Array.isArray(cs.courses) ? cs.courses[0] : cs.courses,
+    }))
+  } : null
+
   // Get all grades for this student in this term
-  const { data: grades } = await supabase
+  const { data: gradesData } = await supabase
     .from('grades')
     .select(
       `
@@ -50,7 +59,11 @@ export async function getStudentDetailProgress(studentId: string, termId: string
     .eq('term_id', termId)
     .order('assessed_date', { ascending: true })
 
-  const typedGrades = (grades || []) as Grade[]
+  const typedGrades = (gradesData || []).map((g: any) => ({
+    ...g,
+    topics: Array.isArray(g.topics) ? g.topics[0] : g.topics,
+    subtopics: Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics,
+  })) as Grade[]
 
   // Calculate stats
   const totalGrades = typedGrades.length
@@ -90,7 +103,7 @@ export async function getStudentDetailProgress(studentId: string, termId: string
   })
 
   return {
-    studentInfo: studentInfo as Student & { class_students: any[] },
+    studentInfo: studentInfo as any,
     overallStats: {
       totalGrades,
       totalLP,
@@ -110,7 +123,7 @@ export async function getCourseProgressData(
   const supabase = await createClient()
 
   // Get student info with class details
-  const { data: studentInfo } = await supabase
+  const { data: studentData } = await supabase
     .from('students')
     .select(
       `
@@ -133,12 +146,29 @@ export async function getCourseProgressData(
     .eq('class_students.course_id', courseId)
     .single()
 
-  if (!studentInfo) throw new Error('Student not found in this class/course context')
+  if (!studentData) throw new Error('Student not found in this class/course context')
+
+  const studentInfo = {
+    ...studentData,
+    class_students: (studentData as any).class_students?.map((cs: any) => ({
+      ...cs,
+      classes: Array.isArray(cs.classes) ? cs.classes[0] : cs.classes,
+      courses: Array.isArray(cs.courses) ? {
+        ...cs.courses[0],
+        boards: Array.isArray(cs.courses[0].boards) ? cs.courses[0].boards[0] : cs.courses[0].boards,
+        qualifications: Array.isArray(cs.courses[0].qualifications) ? cs.courses[0].qualifications[0] : cs.courses[0].qualifications,
+      } : {
+        ...cs.courses,
+        boards: Array.isArray(cs.courses.boards) ? cs.courses.boards[0] : cs.courses.boards,
+        qualifications: Array.isArray(cs.courses.qualifications) ? cs.courses.qualifications[0] : cs.courses.qualifications,
+      },
+    }))
+  }
 
   const subjectId = (studentInfo as any).class_students[0].courses.subject_id
 
   // Get full curriculum structure
-  const { data: topics } = await supabase
+  const { data: topicsData } = await supabase
     .from('topics')
     .select(
       `
@@ -153,8 +183,13 @@ export async function getCourseProgressData(
     .eq('subject_id', subjectId)
     .order('name')
 
+  const topics = (topicsData || []).map((t: any) => ({
+    ...t,
+    subtopics: Array.isArray(t.subtopics) ? t.subtopics : [t.subtopics].filter(Boolean)
+  }))
+
   // Get all grades for this student in this term/class/course
-  const { data: grades } = await supabase
+  const { data: gradesData } = await supabase
     .from('grades')
     .select(
       `
@@ -169,10 +204,16 @@ export async function getCourseProgressData(
     .eq('term_id', termId)
     .order('assessed_date', { ascending: false })
 
+  const grades = (gradesData || []).map((g: any) => ({
+    ...g,
+    topics: Array.isArray(g.topics) ? g.topics[0] : g.topics,
+    subtopics: Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics,
+  })) as Grade[]
+
   return {
     studentInfo,
     topics: topics || [],
-    grades: (grades || []) as Grade[],
+    grades: grades,
   }
 }
 

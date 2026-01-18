@@ -38,7 +38,10 @@ export async function getClassStudents(classId: string) {
     )
     .eq('class_id', classId)
 
-  return students?.map((s) => s.students as any) || []
+  return students?.map((s: any) => {
+    const student = Array.isArray(s.students) ? s.students[0] : s.students
+    return student
+  }) || []
 }
 
 export async function getGrades(
@@ -82,10 +85,20 @@ export async function getGrades(
 
   query = query.range(from, to)
 
-  const { data: grades, count, error } = await query
+  const { data: gradesData, count, error } = await query
 
   if (error) throw error
-  return { data: (grades || []) as Grade[], count: count || 0 }
+  
+  const grades = (gradesData || []).map((g: any) => ({
+    ...g,
+    students: Array.isArray(g.students) ? g.students[0] : g.students,
+    classes: Array.isArray(g.classes) ? g.classes[0] : g.classes,
+    courses: Array.isArray(g.courses) ? g.courses[0] : g.courses,
+    topics: Array.isArray(g.topics) ? g.topics[0] : g.topics,
+    subtopics: Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics,
+  }))
+
+  return { data: grades as Grade[], count: count || 0 }
 }
 
 export async function updateGrade(gradeId: string, updates: Partial<Grade>) {

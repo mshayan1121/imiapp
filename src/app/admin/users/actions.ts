@@ -13,6 +13,12 @@ const createUserSchema = z.object({
 
 export async function createTeacher(formData: FormData) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
+
     const supabaseAdmin = createAdminClient()
 
     const data = {
@@ -53,6 +59,12 @@ export async function createTeacher(formData: FormData) {
 
 export async function createAdmin(formData: FormData) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
+
     const supabaseAdmin = createAdminClient()
 
     const data = {
@@ -93,6 +105,12 @@ export async function createAdmin(formData: FormData) {
 
 export async function deleteUser(userId: string) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
+
     const supabaseAdmin = createAdminClient()
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)

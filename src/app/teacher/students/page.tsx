@@ -10,7 +10,7 @@ export default async function TeacherStudentsPage() {
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    redirect('/auth/login')
+    redirect('/')
   }
 
   const initialFilters = {

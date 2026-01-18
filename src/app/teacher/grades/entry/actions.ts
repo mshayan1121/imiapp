@@ -41,7 +41,13 @@ export async function getClassDetails(classId: string) {
 
   if (studentsError) throw studentsError
 
-  return { students }
+  const normalizedStudents = (students || []).map((s: any) => ({
+    ...s,
+    students: Array.isArray(s.students) ? s.students[0] : s.students,
+    courses: Array.isArray(s.courses) ? s.courses[0] : s.courses,
+  }))
+
+  return { students: normalizedStudents }
 }
 
 export async function getCourseContent(courseId: string) {

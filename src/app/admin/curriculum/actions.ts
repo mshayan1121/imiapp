@@ -8,10 +8,19 @@ const nameSchema = z.object({
   name: z.string().min(1, 'Name is required'),
 })
 
+async function checkAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.user_metadata.role !== 'admin') {
+    throw new Error('Not authorized')
+  }
+  return supabase
+}
+
 // Qualifications
 export async function createQualification(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
 
     const validated = nameSchema.safeParse({ name })
@@ -33,7 +42,7 @@ export async function createQualification(formData: FormData) {
 
 export async function deleteQualification(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('qualifications').delete().eq('id', id)
 
     if (error) {
@@ -51,7 +60,7 @@ export async function deleteQualification(id: string) {
 
 export async function updateQualification(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
 
     const validated = nameSchema.safeParse({ name })
@@ -74,7 +83,7 @@ export async function updateQualification(id: string, formData: FormData) {
 // Boards
 export async function createBoard(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const qualificationId = formData.get('qualificationId') as string
 
@@ -100,7 +109,7 @@ export async function createBoard(formData: FormData) {
 
 export async function deleteBoard(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('boards').delete().eq('id', id)
 
     if (error) {
@@ -118,7 +127,7 @@ export async function deleteBoard(id: string) {
 
 export async function updateBoard(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const qualificationId = formData.get('qualificationId') as string
 
@@ -146,7 +155,7 @@ export async function updateBoard(id: string, formData: FormData) {
 // Subjects
 export async function createSubject(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const boardId = formData.get('boardId') as string
 
@@ -170,7 +179,7 @@ export async function createSubject(formData: FormData) {
 
 export async function deleteSubject(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('subjects').delete().eq('id', id)
 
     if (error) {
@@ -188,7 +197,7 @@ export async function deleteSubject(id: string) {
 
 export async function updateSubject(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const boardId = formData.get('boardId') as string
 
@@ -213,7 +222,7 @@ export async function updateSubject(id: string, formData: FormData) {
 // Topics
 export async function createTopic(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const subjectId = formData.get('subjectId') as string
 
@@ -237,7 +246,7 @@ export async function createTopic(formData: FormData) {
 
 export async function deleteTopic(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('topics').delete().eq('id', id)
 
     if (error) {
@@ -255,7 +264,7 @@ export async function deleteTopic(id: string) {
 
 export async function updateTopic(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const subjectId = formData.get('subjectId') as string
 
@@ -280,7 +289,7 @@ export async function updateTopic(id: string, formData: FormData) {
 // Subtopics
 export async function createSubtopic(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const topicId = formData.get('topicId') as string
 
@@ -304,7 +313,7 @@ export async function createSubtopic(formData: FormData) {
 
 export async function deleteSubtopic(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('subtopics').delete().eq('id', id)
 
     if (error) {
@@ -322,7 +331,7 @@ export async function deleteSubtopic(id: string) {
 
 export async function updateSubtopic(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const topicId = formData.get('topicId') as string
 
@@ -347,7 +356,7 @@ export async function updateSubtopic(id: string, formData: FormData) {
 // Courses
 export async function createCourse(formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const qualificationId = formData.get('qualificationId') as string
     const boardId = formData.get('boardId') as string
@@ -375,7 +384,7 @@ export async function createCourse(formData: FormData) {
 
 export async function deleteCourse(id: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const { error } = await supabase.from('courses').delete().eq('id', id)
 
     if (error) {
@@ -393,7 +402,7 @@ export async function deleteCourse(id: string) {
 
 export async function updateCourse(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
+    const supabase = await checkAdmin()
     const name = formData.get('name') as string
     const qualificationId = formData.get('qualificationId') as string
     const boardId = formData.get('boardId') as string

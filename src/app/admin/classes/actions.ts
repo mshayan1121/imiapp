@@ -4,9 +4,18 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { classSchema } from '@/lib/schemas'
 
+async function checkAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.user_metadata.role !== 'admin') {
+    throw new Error('Not authorized')
+  }
+  return supabase
+}
+
 // Fetch teachers for dropdown
 export async function getTeachers() {
-  const supabase = await createClient()
+  const supabase = await checkAdmin()
   const { data, error } = await supabase
     .from('profiles')
     .select('id, email, role, full_name')
@@ -226,5 +235,22 @@ export async function getClassDetails(classId: string) {
 
   if (studentsError) throw studentsError
 
-  return { ...classData, students }
+  const normalizedStudents = (students || []).map((s: any) => ({
+    ...s,
+    student: Array.isArray(s.student) ? s.student[0] : s.student,
+    course: s.course ? {
+      ...(Array.isArray(s.course) ? s.course[0] : s.course),
+      qualification: Array.isArray((Array.isArray(s.course) ? s.course[0] : s.course).qualification)
+        ? (Array.isArray(s.course) ? s.course[0] : s.course).qualification[0]
+        : (Array.isArray(s.course) ? s.course[0] : s.course).qualification,
+      board: Array.isArray((Array.isArray(s.course) ? s.course[0] : s.course).board)
+        ? (Array.isArray(s.course) ? s.course[0] : s.course).board[0]
+        : (Array.isArray(s.course) ? s.course[0] : s.course).board,
+      subject: Array.isArray((Array.isArray(s.course) ? s.course[0] : s.course).subject)
+        ? (Array.isArray(s.course) ? s.course[0] : s.course).subject[0]
+        : (Array.isArray(s.course) ? s.course[0] : s.course).subject,
+    } : null
+  }))
+
+  return { ...classData, students: normalizedStudents }
 }

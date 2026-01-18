@@ -16,7 +16,7 @@ export async function checkExistingEmails(emails: string[]) {
   // We assume emails are stored in lowercase in the database
   // If not, this check might miss some case-variant duplicates
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .select('email')
     .in('email', emails)
 
@@ -59,28 +59,6 @@ export async function importTeacher(teacher: {
 
     if (!authData.user) {
       return { success: false, error: 'User creation failed (no data returned)' }
-    }
-
-    // 2. Create Database Record (users table)
-    // We manually insert into the public.users table to ensure the record exists
-    // and has the correct role.
-    const { error: dbError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: teacher.email,
-        full_name: teacher.fullName,
-        role: 'teacher',
-        created_at: new Date().toISOString()
-      })
-
-    if (dbError) {
-      console.error(`DB insert failed for ${teacher.email}:`, dbError)
-      
-      // Cleanup: Delete the auth user if DB insert fails to maintain consistency
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-      
-      return { success: false, error: `Database error: ${dbError.message}` }
     }
 
     return { success: true }

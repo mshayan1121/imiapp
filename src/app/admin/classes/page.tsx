@@ -15,7 +15,7 @@ async function ClassesContentLoader() {
     { data: classesData, error: classesError },
     { data: profiles },
     { data: students },
-    { data: courses },
+    { data: coursesData },
   ] = await Promise.all([
     supabase
       .from('classes')
@@ -37,6 +37,13 @@ async function ClassesContentLoader() {
     )
   }
 
+  const courses = (coursesData || []).map((c: any) => ({
+    ...c,
+    qualification: Array.isArray(c.qualification) ? c.qualification[0] : c.qualification,
+    board: Array.isArray(c.board) ? c.board[0] : c.board,
+    subject: Array.isArray(c.subject) ? c.subject[0] : c.subject,
+  }))
+
   // Manually join teachers since PostgREST doesn't support joining auth.users easily
   const classes =
     classesData?.map((cls) => ({
@@ -49,7 +56,7 @@ async function ClassesContentLoader() {
 
 async function CreateDialogLoader() {
   const supabase = await createClient()
-  const [{ data: profiles }, { data: students }, { data: courses }] = await Promise.all([
+  const [{ data: profiles }, { data: students }, { data: coursesData }] = await Promise.all([
     supabase.from('profiles').select('*'),
     supabase.from('students').select('*').order('name'),
     supabase
@@ -57,6 +64,13 @@ async function CreateDialogLoader() {
       .select('*, qualification:qualifications(name), board:boards(name), subject:subjects(name)')
       .order('name'),
   ])
+
+  const courses = (coursesData || []).map((c: any) => ({
+    ...c,
+    qualification: Array.isArray(c.qualification) ? c.qualification[0] : c.qualification,
+    board: Array.isArray(c.board) ? c.board[0] : c.board,
+    subject: Array.isArray(c.subject) ? c.subject[0] : c.subject,
+  }))
 
   const teachers = profiles?.filter((p) => p.role === 'teacher') || []
 

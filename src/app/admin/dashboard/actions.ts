@@ -84,7 +84,7 @@ export async function getAdminDashboardData() {
   // 4. Recent System Activity
   // We'll join grades, class_students, and parent_contacts to get a combined feed
   // For now, let's get the most recent grades and enrollments
-  const { data: recentGrades } = await supabase
+  const { data: recentGradesRaw } = await supabase
     .from('grades')
     .select(
       `
@@ -101,7 +101,14 @@ export async function getAdminDashboardData() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const { data: recentEnrollments } = await supabase
+  const recentGrades = (recentGradesRaw || []).map((g: any) => ({
+    ...g,
+    profiles: Array.isArray(g.profiles) ? g.profiles[0] : g.profiles,
+    classes: Array.isArray(g.classes) ? g.classes[0] : g.classes,
+    students: Array.isArray(g.students) ? g.students[0] : g.students,
+  }))
+
+  const { data: recentEnrollmentsRaw } = await supabase
     .from('class_students')
     .select(
       `
@@ -114,25 +121,26 @@ export async function getAdminDashboardData() {
     .order('enrolled_at', { ascending: false })
     .limit(10)
 
+  const recentEnrollments = (recentEnrollmentsRaw || []).map((e: any) => ({
+    ...e,
+    classes: Array.isArray(e.classes) ? e.classes[0] : e.classes,
+    students: Array.isArray(e.students) ? e.students[0] : e.students,
+  }))
+
   const activities = [
     ...(recentGrades?.map((g) => {
-      const profile = Array.isArray(g.profiles) ? g.profiles[0] : g.profiles
-      const student = Array.isArray(g.students) ? g.students[0] : g.students
-      const cls = Array.isArray(g.classes) ? g.classes[0] : g.classes
       return {
         id: `grade-${g.id}`,
         type: 'grade',
-        message: `Teacher ${profile?.full_name || 'Unknown'} added grade for ${student?.name} in ${cls?.name}`,
+        message: `Teacher ${g.profiles?.full_name || 'Unknown'} added grade for ${g.students?.name} in ${g.classes?.name}`,
         timestamp: g.created_at,
       }
     }) || []),
     ...(recentEnrollments?.map((e) => {
-      const student = Array.isArray(e.students) ? e.students[0] : e.students
-      const cls = Array.isArray(e.classes) ? e.classes[0] : e.classes
       return {
         id: `enroll-${e.id}`,
         type: 'enrollment',
-        message: `New student ${student?.name} enrolled in ${cls?.name}`,
+        message: `New student ${e.students?.name} enrolled in ${e.classes?.name}`,
         timestamp: e.enrolled_at,
       }
     }) || []),
@@ -167,11 +175,16 @@ export async function getAdminDashboardData() {
   }
 
   // 6. Class Performance Breakdown
-  const { data: allClasses } = await supabase.from('classes').select(`
+  const { data: allClassesRaw } = await supabase.from('classes').select(`
       id,
       name,
       profiles:teacher_id (full_name)
     `)
+
+  const allClasses = (allClassesRaw || []).map((cls: any) => ({
+    ...cls,
+    profiles: Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles,
+  }))
 
   const classPerformance = activeTerm
     ? await Promise.all(

@@ -11,7 +11,9 @@ export async function createStudent(formData: FormData) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return { error: 'You must be logged in to create a student.' }
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
 
     const data = {
       name: formData.get('name') as string,
@@ -45,6 +47,10 @@ export async function createStudent(formData: FormData) {
 export async function updateStudent(id: string, formData: FormData) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
 
     const data = {
       name: formData.get('name') as string,
@@ -77,6 +83,10 @@ export async function updateStudent(id: string, formData: FormData) {
 export async function deleteStudent(id: string) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
 
     const { error } = await supabase.from('students').delete().eq('id', id)
 
@@ -97,6 +107,10 @@ export async function deleteStudent(id: string) {
 export async function bulkDeleteStudents(ids: string[]) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.user_metadata.role !== 'admin') {
+      return { error: 'Not authorized' }
+    }
 
     const { error } = await supabase.from('students').delete().in('id', ids)
 

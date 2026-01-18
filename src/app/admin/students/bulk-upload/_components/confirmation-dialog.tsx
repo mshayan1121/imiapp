@@ -10,8 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { AlertTriangle, Check } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ConfirmationDialogProps {
   open: boolean
@@ -25,26 +23,19 @@ export function ConfirmationDialog({ open, onOpenChange, onConfirm, count }: Con
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Teacher Import</AlertDialogTitle>
+          <AlertDialogTitle>Confirm Student Import</AlertDialogTitle>
           <AlertDialogDescription asChild className="space-y-4">
             <div className="text-muted-foreground text-sm">
-              <p>You are about to import <strong>{count}</strong> new teachers.</p>
+              <p>You are about to import <strong>{count}</strong> new students.</p>
               
               <div className="space-y-2 text-sm">
                 <p className="font-medium">What happens next:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Teacher accounts will be created</li>
-                  <li>Temporary passwords will be generated</li>
-                  <li>Teachers will be granted access immediately</li>
+                  <li>Student records will be created</li>
+                  <li>Contact information will be added</li>
+                  <li>Students will appear in the directory immediately</li>
                 </ul>
               </div>
-
-              <Alert className="bg-amber-50 border-amber-200 text-amber-900 mt-4">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-xs ml-2">
-                  <strong>Important:</strong> Passwords will be shown in the results. You must share them with teachers manually via WhatsApp, email, or in-person.
-                </AlertDescription>
-              </Alert>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

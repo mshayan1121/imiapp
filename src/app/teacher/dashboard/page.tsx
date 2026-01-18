@@ -42,7 +42,7 @@ async function DashboardContent() {
               <Users className="mr-2 h-4 w-4" /> View My Classes
             </Button>
           </Link>
-          <Link href="/teacher/login">
+          <Link href="/">
             <Button variant="ghost">Sign Out</Button>
           </Link>
         </div>

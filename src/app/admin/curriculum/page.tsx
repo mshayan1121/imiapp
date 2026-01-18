@@ -12,7 +12,7 @@ export default async function ManageCurriculumPage() {
     { data: subjects },
     { data: topics },
     { data: subtopics },
-    { data: courses },
+    { data: coursesData },
   ] = await Promise.all([
     supabase.from('qualifications').select('*').order('name'),
     supabase.from('boards').select('*').order('name'),
@@ -31,6 +31,13 @@ export default async function ManageCurriculumPage() {
       )
       .order('created_at', { ascending: false }),
   ])
+
+  const courses = (coursesData || []).map((c: any) => ({
+    ...c,
+    qualification: Array.isArray(c.qualification) ? c.qualification[0] : c.qualification,
+    board: Array.isArray(c.board) ? c.board[0] : c.board,
+    subject: Array.isArray(c.subject) ? c.subject[0] : c.subject,
+  }))
 
   return (
     <PageContainer className="animate-in fade-in duration-500">
