@@ -15,6 +15,7 @@ import {
   Edit,
   TrendingUp,
   LogOut,
+  Upload,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'

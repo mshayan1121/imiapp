@@ -51,6 +51,46 @@ export async function createTeacher(formData: FormData) {
   }
 }
 
+export async function createAdmin(formData: FormData) {
+  try {
+    const supabaseAdmin = createAdminClient()
+
+    const data = {
+      fullName: formData.get('fullName') as string,
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    }
+
+    const validated = createUserSchema.safeParse(data)
+
+    if (!validated.success) {
+      return { error: 'Invalid user data: ' + validated.error.issues[0].message }
+    }
+
+    // Create user using service role key (admin client)
+    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        role: 'admin',
+        full_name: data.fullName,
+      },
+    })
+
+    if (createError) {
+      console.error('Auth Error:', createError)
+      return { error: 'Failed to create admin account. ' + createError.message }
+    }
+
+    revalidatePath('/admin/users')
+    return { success: true }
+  } catch (err) {
+    console.error('Unexpected Error:', err)
+    return { error: 'An unexpected error occurred. Please try again.' }
+  }
+}
+
 export async function deleteUser(userId: string) {
   try {
     const supabaseAdmin = createAdminClient()

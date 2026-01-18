@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import { createClient } from '@/utils/supabase/server'
 import { AddTeacherDialog } from '@/components/admin/add-teacher-dialog'
+import { AddAdminDialog } from '@/components/admin/add-admin-dialog'
+import { BulkUploadDialog } from '@/components/admin/bulk-upload-dialog'
 import { UsersTable } from '@/components/admin/users-table'
 import { PageContainer } from '@/components/layout/page-container'
 import { PageHeader } from '@/components/layout/page-header'
@@ -33,7 +35,13 @@ export default function ManageUsersPage() {
       <PageHeader
         title="Manage Users"
         description="View and manage admin and teacher accounts."
-        action={<AddTeacherDialog />}
+        action={
+          <div className="flex gap-2">
+            <BulkUploadDialog />
+            <AddAdminDialog />
+            <AddTeacherDialog />
+          </div>
+        }
       />
 
       <Section>
