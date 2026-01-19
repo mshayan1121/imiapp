@@ -53,10 +53,10 @@ export function TeacherAuthForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Teacher Sign In</h2>
-        <p className="text-sm text-gray-500">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-2 text-center mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Teacher Sign In</h2>
+        <p className="text-xs sm:text-sm text-gray-500 px-2">
           Enter your credentials to access the teacher dashboard.
         </p>
       </div>
@@ -75,13 +75,13 @@ export function TeacherAuthForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-700">Email Address</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="teacher@example.com"
-                    className="bg-gray-50/50 border-gray-200 focus:bg-white"
-                    {...field}
-                  />
-                </FormControl>
+                  <FormControl>
+                    <Input
+                      placeholder="teacher@example.com"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
+                      {...field}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -92,21 +92,21 @@ export function TeacherAuthForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-700">Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    className="bg-gray-50/50 border-gray-200 focus:bg-white"
-                    {...field}
-                  />
-                </FormControl>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
+                      {...field}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           <Button
             type="submit"
-            className="w-full h-11 shadow-md shadow-primary/10 mt-2"
+            className="w-full h-11 sm:h-12 shadow-md shadow-primary/10 mt-2 min-h-[44px]"
             disabled={loading}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -116,7 +116,7 @@ export function TeacherAuthForm() {
       </Form>
 
       <div className="pt-4 text-center">
-        <p className="text-xs text-gray-500">Teachers are registered by administrators</p>
+        <p className="text-xs sm:text-sm text-gray-500 px-2">Teachers are registered by administrators</p>
       </div>
     </div>
   )

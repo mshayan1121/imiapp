@@ -18,11 +18,14 @@ import {
   LogOut,
   Upload,
   FileText,
+  X,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { logout } from '@/app/auth/actions'
+import { useSidebar } from './sidebar-context'
 
 interface SidebarProps {
   role: 'admin' | 'teacher'
@@ -35,6 +38,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentStatus = searchParams.get('status')
+  const { setIsOpen } = useSidebar()
 
   const adminItems = [
     { href: '/admin/dashboard', icon: Home, label: 'Dashboard' },
@@ -65,10 +69,10 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-20 bg-blue-900 flex flex-col z-50 border-r border-blue-800">
+    <aside className="h-screen w-20 md:w-20 bg-blue-900 flex flex-col z-50 border-r border-blue-800 overflow-hidden">
       {/* Logo Section */}
-      <div className="h-20 flex items-center justify-center border-b border-blue-800 shrink-0">
-        <div className="flex items-center justify-center p-2">
+      <div className="h-20 flex items-center justify-between px-2 border-b border-blue-800 shrink-0">
+        <div className="flex items-center justify-center p-2 flex-1">
           <div className="rounded-full bg-white p-2 flex items-center justify-center">
             <Image
               src="/favicon and mini sidebar logo.png"
@@ -80,12 +84,22 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
             />
           </div>
         </div>
+        {/* Close button for mobile */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden h-8 w-8 text-blue-100 hover:text-white hover:bg-blue-800"
+          onClick={() => setIsOpen(false)}
+        >
+          <X className="h-5 w-5" />
+          <span className="sr-only">Close menu</span>
+        </Button>
       </div>
 
       {/* Navigation Items */}
       <TooltipProvider delayDuration={0}>
-        <nav className="flex-1 overflow-y-auto py-4 no-scrollbar">
-          <div className="space-y-1">
+        <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
+          <div className="space-y-0.5">
             {items.map((item) => {
               const [hrefPath, hrefQuery] = item.href.split('?')
               const currentQuery = searchParams.toString()
@@ -116,8 +130,14 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
                   <TooltipTrigger asChild>
                     <Link
                       href={item.href}
+                      onClick={() => {
+                        // Close sidebar on mobile when navigating
+                        if (window.innerWidth < 768) {
+                          setIsOpen(false)
+                        }
+                      }}
                       className={cn(
-                        'flex items-center justify-center h-14 w-full transition-all duration-200 relative group',
+                        'flex items-center justify-center h-12 w-full transition-all duration-200 relative group min-h-[44px]',
                         isActive
                           ? 'bg-blue-800 text-white'
                           : 'text-blue-100/70 hover:bg-blue-800/50 hover:text-white',
@@ -134,7 +154,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-white" />}
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8} className="font-medium">
+                  <TooltipContent side="right" sideOffset={8} className="font-medium hidden md:block">
                     {item.label}
                   </TooltipContent>
                 </Tooltip>

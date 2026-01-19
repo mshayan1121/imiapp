@@ -151,7 +151,7 @@ export function UsersTable({ users }: UsersTableProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-destructive"
+              className="h-10 w-10 text-destructive min-h-[44px] min-w-[44px]"
               onClick={() => setDeleteId(user.id)}
             >
               <Trash2 className="h-4 w-4" />
@@ -214,13 +214,14 @@ export function UsersTable({ users }: UsersTableProps) {
             size="sm"
             onClick={handleBulkDelete}
             disabled={isBulkDeleting}
+            className="min-h-[44px]"
           >
             Delete ({table.getFilteredSelectedRowModel().rows.length})
           </Button>
         )}
       </div>
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-[700px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

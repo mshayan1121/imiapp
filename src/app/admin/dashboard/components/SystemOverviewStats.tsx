@@ -42,7 +42,7 @@ export function SystemOverviewStats({ stats }: SystemOverviewStatsProps) {
   ]
 
   return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((card, i) => (
         <StatCard key={i} title={card.title} value={card.value} icon={card.icon} />
       ))}

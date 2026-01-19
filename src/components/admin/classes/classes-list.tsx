@@ -105,8 +105,8 @@ export function ClassesList({ classes }: ClassesListProps) {
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+        <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow className="bg-gray-50/50">
               <TableHead className="font-semibold text-gray-700">Class Name</TableHead>
@@ -148,22 +148,22 @@ export function ClassesList({ classes }: ClassesListProps) {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100">
+                        <Button variant="ghost" className="h-10 w-10 p-0 hover:bg-gray-100 min-h-[44px] min-w-[44px]">
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer min-h-[44px]">
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer min-h-[44px]">
                           <Copy className="mr-2 h-4 w-4" />
                           Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer min-h-[44px]"
                           onClick={(e) => {
                             e.stopPropagation()
                             setDeleteId(cls.id)

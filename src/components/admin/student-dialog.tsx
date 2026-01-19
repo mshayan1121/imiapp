@@ -80,24 +80,24 @@ export function StudentDialog({ student, trigger }: StudentDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="name" className="sm:text-right">
                 Name
               </Label>
               <Input
                 id="name"
                 name="name"
                 defaultValue={student?.name}
-                className="col-span-3"
+                className="sm:col-span-3"
                 required
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="yearGroup" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="yearGroup" className="sm:text-right">
                 Year
               </Label>
               <Select name="yearGroup" defaultValue={student?.year_group} required>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="sm:col-span-3">
                   <SelectValue placeholder="Select year group" />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,21 +109,21 @@ export function StudentDialog({ student, trigger }: StudentDialogProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="school" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="school" className="sm:text-right">
                 School
               </Label>
               <Input
                 id="school"
                 name="school"
                 defaultValue={student?.school}
-                className="col-span-3"
+                className="sm:col-span-3"
                 required
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button type="submit" loading={loading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button type="submit" loading={loading} className="w-full sm:w-auto min-h-[44px]">
               {isEditing ? 'Save Changes' : 'Add Student'}
             </Button>
           </DialogFooter>

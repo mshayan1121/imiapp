@@ -163,7 +163,7 @@ export function GradeForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border text-sm">
           <div className="space-y-1">
             <p className="text-muted-foreground uppercase text-[10px] font-bold tracking-wider">Student</p>
             <p className="font-medium">{studentName}</p>
@@ -182,7 +182,7 @@ export function GradeForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="work_type"

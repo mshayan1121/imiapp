@@ -82,12 +82,12 @@ export function AdminAuthForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-2 text-center mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
           Admin {isLogin ? 'Sign In' : 'Sign Up'}
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-xs sm:text-sm text-gray-500 px-2">
           {isLogin
             ? 'Enter your credentials to access the admin dashboard.'
             : 'Create a new admin account.'}
@@ -112,7 +112,7 @@ export function AdminAuthForm() {
                   <FormControl>
                     <Input
                       placeholder="admin@example.com"
-                      className="bg-gray-50/50 border-gray-200 focus:bg-white"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
                       {...field}
                     />
                   </FormControl>
@@ -130,7 +130,7 @@ export function AdminAuthForm() {
                     <Input
                       type="password"
                       placeholder="••••••••"
-                      className="bg-gray-50/50 border-gray-200 focus:bg-white"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
                       {...field}
                     />
                   </FormControl>
@@ -140,7 +140,7 @@ export function AdminAuthForm() {
             />
             <Button
               type="submit"
-              className="w-full h-11 shadow-md shadow-primary/10 mt-2"
+              className="w-full h-11 sm:h-12 shadow-md shadow-primary/10 mt-2 min-h-[44px]"
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -160,7 +160,7 @@ export function AdminAuthForm() {
                   <FormControl>
                     <Input
                       placeholder="admin@example.com"
-                      className="bg-gray-50/50 border-gray-200 focus:bg-white"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
                       {...field}
                     />
                   </FormControl>
@@ -178,7 +178,7 @@ export function AdminAuthForm() {
                     <Input
                       type="password"
                       placeholder="••••••••"
-                      className="bg-gray-50/50 border-gray-200 focus:bg-white"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
                       {...field}
                     />
                   </FormControl>
@@ -196,7 +196,7 @@ export function AdminAuthForm() {
                     <Input
                       type="password"
                       placeholder="••••••••"
-                      className="bg-gray-50/50 border-gray-200 focus:bg-white"
+                      className="bg-gray-50/50 border-gray-200 focus:bg-white h-11 sm:h-12 min-h-[44px]"
                       {...field}
                     />
                   </FormControl>
@@ -206,7 +206,7 @@ export function AdminAuthForm() {
             />
             <Button
               type="submit"
-              className="w-full h-11 shadow-md shadow-primary/10 mt-2"
+              className="w-full h-11 sm:h-12 shadow-md shadow-primary/10 mt-2 min-h-[44px]"
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -219,7 +219,7 @@ export function AdminAuthForm() {
       <div className="pt-4 text-center">
         <button
           type="button"
-          className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          className="text-xs sm:text-sm font-medium text-primary hover:text-primary/80 transition-colors min-h-[44px] px-2 py-2"
           onClick={() => {
             setIsLogin(!isLogin)
             setError(null)

@@ -40,7 +40,7 @@ async function AdminDashboardContent() {
         />
       </Section>
 
-      <div className="grid gap-8 lg:grid-cols-3 mt-8">
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-3 mt-6 sm:mt-8">
         <div className="lg:col-span-1">
           <Section title="Recent Activity">
             <RecentActivityFeed activities={data.activities} />

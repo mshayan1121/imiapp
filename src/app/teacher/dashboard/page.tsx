@@ -36,14 +36,14 @@ async function DashboardContent() {
         <p className="text-gray-600 max-w-md mb-8">
           The dashboard requires an active school term to display data. Please contact your school administrator to set up the academic terms.
         </p>
-        <div className="flex gap-4">
-          <Link href="/teacher/classes">
-            <Button variant="outline">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+          <Link href="/teacher/classes" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
               <Users className="mr-2 h-4 w-4" /> View My Classes
             </Button>
           </Link>
-          <Link href="/">
-            <Button variant="ghost">Sign Out</Button>
+          <Link href="/" className="w-full sm:w-auto">
+            <Button variant="ghost" className="w-full sm:w-auto min-h-[44px]">Sign Out</Button>
           </Link>
         </div>
       </div>
@@ -58,8 +58,8 @@ async function DashboardContent() {
         <StatsCards stats={data.stats} />
       </Section>
 
-      <div className="grid lg:grid-cols-4 gap-8 mt-8">
-        <div className="lg:col-span-3">
+      <div className="grid lg:grid-cols-4 gap-6 sm:gap-8 mt-6 sm:mt-8">
+        <div className="lg:col-span-3 space-y-6 sm:space-y-8">
           <Section title="Flagged Students">
             <FlaggedStudentsAlert
               flaggedCount={data.stats.flaggedCount}
@@ -82,14 +82,14 @@ async function DashboardContent() {
             <Card className="border-gray-200 shadow-sm">
               <CardContent className="flex flex-col gap-3 pt-6">
                 <Link href="/teacher/grades/entry">
-                  <Button variant="default" className="w-full justify-start shadow-sm">
+                  <Button variant="default" className="w-full justify-start shadow-sm min-h-[44px]">
                     <PlusCircle className="mr-2 h-4 w-4" /> Enter Grades
                   </Button>
                 </Link>
                 <Link href="/teacher/grades">
                   <Button
                     variant="outline"
-                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700"
+                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700 min-h-[44px]"
                   >
                     <FileText className="mr-2 h-4 w-4" /> View All Grades
                   </Button>
@@ -97,7 +97,7 @@ async function DashboardContent() {
                 <Link href="/teacher/classes">
                   <Button
                     variant="outline"
-                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700"
+                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700 min-h-[44px]"
                   >
                     <Users className="mr-2 h-4 w-4" /> My Classes
                   </Button>
@@ -105,7 +105,7 @@ async function DashboardContent() {
                 <Link href="/teacher/progress">
                   <Button
                     variant="outline"
-                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700"
+                    className="w-full justify-start hover:bg-gray-50 border-gray-200 text-gray-700 min-h-[44px]"
                   >
                     <TrendingUp className="mr-2 h-4 w-4" /> Student Progress
                   </Button>
@@ -113,7 +113,7 @@ async function DashboardContent() {
                 <Link href="/teacher/progress?status=flagged">
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100 min-h-[44px]"
                   >
                     <AlertTriangle className="mr-2 h-4 w-4" /> Flagged Students
                   </Button>

@@ -3,13 +3,37 @@
 import * as React from 'react'
 
 interface SidebarContextType {
-  // Keeping context for potential future use, but removing collapse state
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+  toggle: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContextType | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  return <SidebarContext.Provider value={{}}>{children}</SidebarContext.Provider>
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  const toggle = React.useCallback(() => {
+    setIsOpen((prev) => !prev)
+  }, [])
+
+  // Close sidebar when clicking outside on mobile
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return (
+    <SidebarContext.Provider value={{ isOpen, setIsOpen, toggle }}>
+      {children}
+    </SidebarContext.Provider>
+  )
 }
 
 export function useSidebar() {

@@ -70,7 +70,7 @@ export function RecentActivityTable({ grades }: RecentActivityTableProps) {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>

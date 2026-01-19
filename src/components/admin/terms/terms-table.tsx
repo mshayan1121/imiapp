@@ -120,24 +120,25 @@ export function TermsTable({ data }: TermsTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <Input
           placeholder="Filter by academic year..."
           value={(table.getColumn('academic_year')?.getFilterValue() as string) ?? ''}
           onChange={(event) => table.getColumn('academic_year')?.setFilterValue(event.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
         <Button
           onClick={() => {
             setEditingTerm(null)
             setDialogOpen(true)
           }}
+          className="w-full sm:w-auto min-h-[44px]"
         >
           Create Term
         </Button>
       </div>
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-[600px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -174,12 +175,13 @@ export function TermsTable({ data }: TermsTableProps) {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-end gap-2 sm:space-x-2 py-4">
         <Button
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
+          className="flex-1 sm:flex-initial min-h-[44px]"
         >
           Previous
         </Button>
@@ -188,6 +190,7 @@ export function TermsTable({ data }: TermsTableProps) {
           size="sm"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
+          className="flex-1 sm:flex-initial min-h-[44px]"
         >
           Next
         </Button>

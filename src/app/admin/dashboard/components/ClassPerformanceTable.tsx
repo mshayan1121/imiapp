@@ -67,10 +67,10 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
 
   return (
     <Card className="mb-8">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <CardTitle className="text-xl font-bold">Class Performance Breakdown</CardTitle>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search class or teacher..."
@@ -79,14 +79,14 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="sm" onClick={exportToCSV} className="h-9 font-bold">
+          <Button variant="outline" size="sm" onClick={exportToCSV} className="h-9 font-bold w-full sm:w-auto min-h-[44px]">
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
+        <div className="rounded-md border overflow-x-auto">
+          <Table className="min-w-[800px]">
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead className="font-bold">Class Name</TableHead>
@@ -155,7 +155,7 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
                     </TableCell>
                     <TableCell className="text-right">
                       <Link href={`/admin/classes/${cls.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="sm" className="h-10 w-10 p-0 min-h-[44px] min-w-[44px]">
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </Link>

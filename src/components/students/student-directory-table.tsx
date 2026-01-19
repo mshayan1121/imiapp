@@ -328,26 +328,26 @@ export function StudentDirectoryTable({
   return (
     <div className="space-y-4">
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border border-dashed animate-in fade-in slide-in-from-top-1">
-          <span className="text-sm font-medium ml-2">{selectedCount} students selected</span>
-          <div className="ml-auto flex gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-muted/50 rounded-md border border-dashed animate-in fade-in slide-in-from-top-1">
+          <span className="text-sm font-medium sm:ml-2">{selectedCount} students selected</span>
+          <div className="ml-auto flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {role === 'admin' && (
               <>
-                <Button size="sm" variant="outline" onClick={() => onBulkEnroll?.(getSelectedStudentIds())}>
+                <Button size="sm" variant="outline" onClick={() => onBulkEnroll?.(getSelectedStudentIds())} className="w-full sm:w-auto min-h-[44px]">
                   Enroll in Class
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => onBulkDelete?.(getSelectedStudentIds())}>
+                <Button size="sm" variant="destructive" onClick={() => onBulkDelete?.(getSelectedStudentIds())} className="w-full sm:w-auto min-h-[44px]">
                   Delete Selected
                 </Button>
               </>
             )}
-            <Button size="sm" variant="outline">Export Selected</Button>
+            <Button size="sm" variant="outline" className="w-full sm:w-auto min-h-[44px]">Export Selected</Button>
           </div>
         </div>
       )}
 
-      <div className="rounded-md border bg-white overflow-hidden">
-        <Table>
+      <div className="rounded-md border bg-white overflow-hidden overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

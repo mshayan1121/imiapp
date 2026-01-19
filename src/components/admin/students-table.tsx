@@ -260,12 +260,12 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
 
   return (
     <div>
-      <div className="flex items-center py-4 gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center py-4 gap-2">
         <Input
           placeholder="Filter names..."
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
           <Button
@@ -273,13 +273,14 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
             size="sm"
             onClick={handleBulkDelete}
             disabled={isBulkDeleting}
+            className="w-full sm:w-auto min-h-[44px]"
           >
             Delete ({table.getFilteredSelectedRowModel().rows.length})
           </Button>
         )}
       </div>
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -324,26 +325,30 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
           Page {currentPage} of {pageCount}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= pageCount}
-        >
-          Next
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="flex-1 sm:flex-initial min-h-[44px]"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= pageCount}
+            className="flex-1 sm:flex-initial min-h-[44px]"
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

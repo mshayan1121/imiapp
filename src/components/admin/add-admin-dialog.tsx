@@ -55,20 +55,20 @@ export function AddAdminDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fullName" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="fullName" className="sm:text-right">
                 Name
               </Label>
               <Input
                 id="fullName"
                 name="fullName"
                 placeholder="Admin User"
-                className="col-span-3"
+                className="sm:col-span-3"
                 required
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="email" className="sm:text-right">
                 Email
               </Label>
               <Input
@@ -76,12 +76,12 @@ export function AddAdminDialog() {
                 name="email"
                 type="email"
                 placeholder="admin@example.com"
-                className="col-span-3"
+                className="sm:col-span-3"
                 required
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="password" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="password" className="sm:text-right">
                 Password
               </Label>
               <Input
@@ -89,13 +89,13 @@ export function AddAdminDialog() {
                 name="password"
                 type="text"
                 defaultValue="Admin123!"
-                className="col-span-3"
+                className="sm:col-span-3"
                 required
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button type="submit" loading={loading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button type="submit" loading={loading} className="w-full sm:w-auto min-h-[44px]">
               Create Account
             </Button>
           </DialogFooter>
