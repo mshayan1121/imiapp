@@ -574,11 +574,11 @@ export function BatchEntry() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Year Group</TableHead>
-                    <TableHead className="w-[150px]">Marks Obtained</TableHead>
-                    <TableHead>Percentage</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[200px]">Student Name</TableHead>
+                    <TableHead className="w-[100px]">Year Group</TableHead>
+                    <TableHead className="w-[120px]">Marks Obtained</TableHead>
+                    <TableHead className="w-[100px]">Percentage</TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

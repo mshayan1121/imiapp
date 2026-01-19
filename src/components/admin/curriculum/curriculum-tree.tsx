@@ -18,7 +18,6 @@ interface CurriculumTreeProps {
   onAdd: (level: CurriculumLevel, parentId?: string) => void
   onEdit: (item: CurriculumItem) => void
   onDelete: (item: CurriculumItem) => void
-  onAddCourse?: (subject: CurriculumItem) => void
 }
 
 export function CurriculumTree({
@@ -31,7 +30,6 @@ export function CurriculumTree({
   onAdd,
   onEdit,
   onDelete,
-  onAddCourse,
 }: CurriculumTreeProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
@@ -174,7 +172,6 @@ export function CurriculumTree({
         onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}
-        onAddCourse={onAddCourse}
       >
         {node.children && renderTree(node.children, level + 1)}
       </TreeItem>
@@ -182,7 +179,7 @@ export function CurriculumTree({
   }
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-6 relative pb-24">
+    <div className="w-full space-y-6 relative pb-24">
       <Card className="p-6 shadow-sm border-gray-200 bg-white">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="relative flex-1 max-w-md">

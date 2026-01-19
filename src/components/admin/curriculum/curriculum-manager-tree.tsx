@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { CurriculumTree } from './curriculum-tree'
 import { CurriculumDialogs } from './curriculum-dialogs'
+import { CourseCreationSection } from './course-creation-section'
 import { CurriculumItem, CurriculumLevel } from './types'
+import { BulkUploadCurriculumDialog } from './bulk-upload-curriculum-dialog'
 import { toast } from 'sonner'
 import { 
   deleteQualification, 
@@ -23,6 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Separator } from '@/components/ui/separator'
+import { Card } from '@/components/ui/card'
 
 interface CurriculumManagerTreeProps {
   qualifications: any[]
@@ -73,29 +77,6 @@ export function CurriculumManagerTree({
     })
   }
 
-  const handleAddCourse = async (subject: CurriculumItem) => {
-    const board = boards.find(b => b.id === (subject as any).board_id)
-    const qualification = qualifications.find(q => q.id === board?.qualification_id)
-    
-    const name = `${qualification?.name} ${board?.name} ${subject.name}`
-    const formData = new FormData()
-    formData.append('name', name)
-    formData.append('qualificationId', qualification?.id || '')
-    formData.append('boardId', board?.id || '')
-    formData.append('subjectId', subject.id)
-
-    try {
-      const result = await createCourse(formData)
-      if (result.success) {
-        toast.success(`Course "${name}" created successfully`)
-      } else {
-        toast.error(result.error || 'Failed to create course')
-      }
-    } catch (error) {
-      toast.error('An unexpected error occurred')
-    }
-  }
-
   const handleDeleteRequest = (item: CurriculumItem) => {
     setItemToDelete(item)
     setDeleteConfirmOpen(true)
@@ -137,14 +118,54 @@ export function CurriculumManagerTree({
   }
 
   return (
-    <div className="w-full">
-      <CurriculumTree
-        {...allData}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDeleteRequest}
-        onAddCourse={handleAddCourse}
-      />
+    <div className="w-full space-y-12 pb-20">
+      {/* Curriculum Hierarchy Section */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">Curriculum Hierarchy</h2>
+            <p className="text-muted-foreground mt-1">
+              Build and manage your curriculum structure from qualifications down to subtopics.
+            </p>
+          </div>
+          <BulkUploadCurriculumDialog />
+        </div>
+        
+        <CurriculumTree
+          {...allData}
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onDelete={handleDeleteRequest}
+        />
+      </section>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <Separator className="w-full" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-gray-50 px-3 text-sm text-gray-400 font-medium">Course Management</span>
+        </div>
+      </div>
+
+      {/* Course Creation Section */}
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Courses</h2>
+          <p className="text-muted-foreground mt-1">
+            Create and manage courses based on your curriculum. Each course automatically includes all topics and subtopics from its subject.
+          </p>
+        </div>
+
+        <CourseCreationSection
+          qualifications={qualifications}
+          boards={boards}
+          subjects={subjects}
+          topics={topics}
+          subtopics={subtopics}
+          courses={courses}
+        />
+      </section>
 
       <CurriculumDialogs
         isOpen={dialogState.isOpen}
@@ -167,7 +188,7 @@ export function CurriculumManagerTree({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -176,3 +197,4 @@ export function CurriculumManagerTree({
     </div>
   )
 }
+

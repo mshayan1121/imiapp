@@ -154,8 +154,8 @@ export function CurriculumList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-[300px]">Name</TableHead>
+              <TableHead className="text-right w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

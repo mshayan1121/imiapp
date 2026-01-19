@@ -198,15 +198,15 @@ function ProgressContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Year Group</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead className="text-center">Total Grades</TableHead>
-                  <TableHead className="text-center">Low Points</TableHead>
-                  <TableHead className="text-center">Flags</TableHead>
-                  <TableHead className="text-center">Average %</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="w-[200px]">Student Name</TableHead>
+                  <TableHead className="w-[100px]">Year Group</TableHead>
+                  <TableHead className="w-[200px]">Course</TableHead>
+                  <TableHead className="w-[100px] text-center">Total Grades</TableHead>
+                  <TableHead className="w-[100px] text-center">Low Points</TableHead>
+                  <TableHead className="w-[100px] text-center">Flags</TableHead>
+                  <TableHead className="w-[100px] text-center">Average %</TableHead>
+                  <TableHead className="w-[150px]">Status</TableHead>
+                  <TableHead className="w-[100px] text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,7 +214,7 @@ function ProgressContent() {
                   <TableRow key={student.student_id} className="group hover:bg-gray-50/50">
                     <TableCell className="font-semibold text-gray-900">{student.student_name}</TableCell>
                     <TableCell className="text-gray-600">{student.year_group}</TableCell>
-                    <TableCell className="text-xs text-gray-500 max-w-[150px] truncate">{student.course_name}</TableCell>
+                    <TableCell className="text-xs text-gray-500 max-w-[150px]">{student.course_name}</TableCell>
                     <TableCell className="text-center font-medium">{student.total_grades}</TableCell>
                     <TableCell className="text-center">
                       {student.low_points > 0 ? (

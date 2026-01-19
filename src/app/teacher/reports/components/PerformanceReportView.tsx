@@ -144,10 +144,10 @@ export function PerformanceReportView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Class</TableHead>
-                    <TableHead className="text-right">Avg %</TableHead>
-                    <TableHead className="text-right">Low Points</TableHead>
-                    <TableHead className="text-right">Grades</TableHead>
+                    <TableHead className="w-[250px]">Class</TableHead>
+                    <TableHead className="w-[100px] text-right">Avg %</TableHead>
+                    <TableHead className="w-[120px] text-right">Low Points</TableHead>
+                    <TableHead className="w-[100px] text-right">Grades</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

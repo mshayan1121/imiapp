@@ -74,14 +74,14 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
         <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[30px]"></TableHead>
-            <TableHead>Student</TableHead>
-            <TableHead>Course</TableHead>
-            <TableHead>Topic / Subtopic</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Marks</TableHead>
-            <TableHead className="text-right">%</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead className="w-[200px]">Student</TableHead>
+            <TableHead className="w-[150px]">Course</TableHead>
+            <TableHead className="w-[250px]">Topic / Subtopic</TableHead>
+            <TableHead className="w-[140px]">Type</TableHead>
+            <TableHead className="w-[80px] text-right">Marks</TableHead>
+            <TableHead className="w-[80px] text-right">%</TableHead>
+            <TableHead className="w-[120px]">Status</TableHead>
+            <TableHead className="w-[120px]">Date</TableHead>
             <TableHead className="w-[80px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -158,7 +158,7 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">
+                  <TableCell className="text-xs">
                     {format(new Date(grade.assessed_date), 'dd MMM yyyy')}
                   </TableCell>
                   <TableCell className="text-right">

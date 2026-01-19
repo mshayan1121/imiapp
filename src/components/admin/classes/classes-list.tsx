@@ -109,11 +109,11 @@ export function ClassesList({ classes }: ClassesListProps) {
         <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow className="bg-gray-50/50">
-              <TableHead className="font-semibold text-gray-700">Class Name</TableHead>
-              <TableHead className="font-semibold text-gray-700">Teacher</TableHead>
-              <TableHead className="font-semibold text-gray-700">Students</TableHead>
-              <TableHead className="font-semibold text-gray-700">Created</TableHead>
-              <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
+              <TableHead className="w-[200px] font-semibold text-gray-700">Class Name</TableHead>
+              <TableHead className="w-[200px] font-semibold text-gray-700">Teacher</TableHead>
+              <TableHead className="w-[120px] font-semibold text-gray-700">Students</TableHead>
+              <TableHead className="w-[140px] font-semibold text-gray-700">Created</TableHead>
+              <TableHead className="w-[100px] text-right font-semibold text-gray-700">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

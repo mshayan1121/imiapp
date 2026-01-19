@@ -18,7 +18,6 @@ interface TreeItemProps {
   onAdd: (level: CurriculumLevel, parentId: string) => void
   onEdit: (item: CurriculumItem) => void
   onDelete: (item: CurriculumItem) => void
-  onAddCourse?: (subject: CurriculumItem) => void
   children?: React.ReactNode
 }
 
@@ -41,7 +40,6 @@ export function TreeItem({
   onAdd,
   onEdit,
   onDelete,
-  onAddCourse,
   children,
 }: TreeItemProps) {
   const Icon = levelIcons[item.level]
@@ -135,21 +133,6 @@ export function TreeItem({
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add {nextLevel.charAt(0).toUpperCase() + nextLevel.slice(1)}
-              </Button>
-            )}
-            
-            {item.level === 'subject' && !item.has_course && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 gap-1.5 font-medium"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onAddCourse?.(item)
-                }}
-              >
-                <Star className="h-3.5 w-3.5" />
-                Create Course
               </Button>
             )}
 

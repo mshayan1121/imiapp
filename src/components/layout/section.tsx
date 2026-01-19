@@ -11,7 +11,7 @@ interface SectionProps {
 
 export function Section({ children, title, description, action, className }: SectionProps) {
   return (
-    <section className={cn('mt-8 first:mt-0', className)}>
+    <section className={cn('mt-6 sm:mt-8 first:mt-0', className)}>
       {(title || description || action) && (
         <div className="flex items-center justify-between mb-6 gap-4">
           <div>

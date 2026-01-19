@@ -89,14 +89,14 @@ export function ClassPerformanceTable({ data }: ClassPerformanceTableProps) {
           <Table className="min-w-[800px]">
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="font-bold">Class Name</TableHead>
-                <TableHead className="font-bold">Teacher</TableHead>
-                <TableHead className="font-bold text-center">Students</TableHead>
-                <TableHead className="font-bold text-center">Grades</TableHead>
-                <TableHead className="font-bold text-center">Average %</TableHead>
-                <TableHead className="font-bold text-center">LP Count</TableHead>
-                <TableHead className="font-bold text-center">Flag Count</TableHead>
-                <TableHead className="text-right font-bold">Action</TableHead>
+                <TableHead className="w-[200px] font-bold">Class Name</TableHead>
+                <TableHead className="w-[200px] font-bold">Teacher</TableHead>
+                <TableHead className="w-[100px] font-bold text-center">Students</TableHead>
+                <TableHead className="w-[100px] font-bold text-center">Grades</TableHead>
+                <TableHead className="w-[120px] font-bold text-center">Average %</TableHead>
+                <TableHead className="w-[100px] font-bold text-center">LP Count</TableHead>
+                <TableHead className="w-[100px] font-bold text-center">Flag Count</TableHead>
+                <TableHead className="w-[80px] text-right font-bold">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

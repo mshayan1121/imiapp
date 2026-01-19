@@ -127,14 +127,14 @@ export function GradeReportView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Topic</TableHead>
-                    <TableHead className="text-right">Marks</TableHead>
-                    <TableHead className="text-right">%</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="w-[200px]">Student</TableHead>
+                    <TableHead className="w-[150px]">Class</TableHead>
+                    <TableHead className="w-[150px]">Course</TableHead>
+                    <TableHead className="w-[250px]">Topic</TableHead>
+                    <TableHead className="w-[100px] text-right">Marks</TableHead>
+                    <TableHead className="w-[80px] text-right">%</TableHead>
+                    <TableHead className="w-[120px]">Date</TableHead>
+                    <TableHead className="w-[120px]">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

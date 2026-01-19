@@ -73,25 +73,25 @@ export function RecentActivityTable({ grades }: RecentActivityTableProps) {
           <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Topic - Subtopic</TableHead>
-                <TableHead>Marks</TableHead>
-                <TableHead>Percentage</TableHead>
+                <TableHead className="w-[120px]">Date</TableHead>
+                <TableHead className="w-[200px]">Student</TableHead>
+                <TableHead className="w-[150px]">Class</TableHead>
+                <TableHead className="w-[250px]">Topic - Subtopic</TableHead>
+                <TableHead className="w-[100px]">Marks</TableHead>
+                <TableHead className="w-[120px]">Percentage</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {grades.map((grade) => (
                 <TableRow key={grade.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
+                  <TableCell className="text-xs">
                     {new Date(grade.assessed_date).toLocaleDateString('en-GB')}
                   </TableCell>
                   <TableCell className="font-medium">{grade.students?.name}</TableCell>
                   <TableCell>{grade.classes?.name}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">
+                  <TableCell>
                     <span className="font-medium">{grade.topics?.name}</span>
-                    <span className="text-muted-foreground block text-xs truncate">
+                    <span className="text-muted-foreground block text-xs">
                       {grade.subtopics?.name}
                     </span>
                   </TableCell>

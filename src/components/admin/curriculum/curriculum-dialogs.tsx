@@ -34,7 +34,6 @@ import {
   updateTopic,
   createSubtopic,
   updateSubtopic,
-  createCourse,
 } from '@/app/admin/curriculum/actions'
 
 interface CurriculumDialogsProps {
@@ -66,7 +65,6 @@ export function CurriculumDialogs({
   const [secondaryParentId, setSecondaryParentId] = useState('') // For subjects (qual -> board)
   const [tertiaryParentId, setTertiaryParentId] = useState('') // For topics (qual -> board -> subject)
   const [quaternaryParentId, setQuaternaryParentId] = useState('') // For subtopics (qual -> board -> subject -> topic)
-  const [createCourseAuto, setCreateCourseAuto] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -98,7 +96,6 @@ export function CurriculumDialogs({
       } else {
         setName('')
         setParentId(initialParentId || '')
-        setCreateCourseAuto(false)
         
         // Auto-fill ancestors if initialParentId is provided
         if (initialParentId) {
@@ -143,23 +140,12 @@ export function CurriculumDialogs({
       } else if (level === 'subject') {
         formData.append('boardId', secondaryParentId)
         result = mode === 'add' ? await createSubject(formData) : await updateSubject(item!.id, formData)
-        
-        if (result.success && createCourseAuto && mode === 'add') {
-          // Note: In a real scenario, we might need the new subject ID here
-          // This is a simplified auto-creation
-          toast.info('Subject created. Course creation triggered.')
-        }
       } else if (level === 'topic') {
         formData.append('subjectId', tertiaryParentId)
         result = mode === 'add' ? await createTopic(formData) : await updateTopic(item!.id, formData)
       } else if (level === 'subtopic') {
         formData.append('topicId', quaternaryParentId || parentId)
         result = mode === 'add' ? await createSubtopic(formData) : await updateSubtopic(item!.id, formData)
-      } else if (level === 'course') {
-        formData.append('qualificationId', parentId)
-        formData.append('boardId', secondaryParentId)
-        formData.append('subjectId', tertiaryParentId || initialParentId!)
-        result = await createCourse(formData)
       }
 
       if (result?.success) {
@@ -290,22 +276,6 @@ export function CurriculumDialogs({
                 required
               />
             </div>
-
-            {level === 'subject' && mode === 'add' && (
-              <div className="flex items-center space-x-2 pt-2">
-                <Checkbox 
-                  id="createCourse" 
-                  checked={createCourseAuto}
-                  onCheckedChange={(val) => setCreateCourseAuto(val as boolean)}
-                />
-                <label
-                  htmlFor="createCourse"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Create course automatically
-                </label>
-              </div>
-            )}
           </div>
 
           <DialogFooter>

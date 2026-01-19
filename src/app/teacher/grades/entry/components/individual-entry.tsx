@@ -54,8 +54,8 @@ interface EntryRow {
   subtopic_id: string
   work_type: 'classwork' | 'homework'
   work_subtype: 'worksheet' | 'pastpaper'
-  marks_obtained: number | ''
-  total_marks: number
+  marks_obtained: number | string
+  total_marks: number | string
   assessed_date: Date
   topics: any[]
   subtopics: any[]
@@ -146,34 +146,52 @@ export function IndividualEntry() {
   }
 
   const updateRow = async (id: string, updates: Partial<EntryRow>) => {
-    const updatedRows = await Promise.all(
-      rows.map(async (row) => {
-        if (row.id === id) {
-          const newRow = { ...row, ...updates }
+    // 1. Update state immediately for non-async fields
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...updates } : row)))
 
-          // Cascade changes
-          if (updates.student_id) {
-            const student = students.find((s) => s.student_id === updates.student_id)
-            newRow.course_id = student?.course_id || ''
-            const { topics } = await getCourseContent(newRow.course_id)
-            newRow.topics = topics || []
-            newRow.topic_id = ''
-            newRow.subtopic_id = ''
-            newRow.subtopics = []
-          }
+    // 2. Handle async side effects
+    if (updates.student_id) {
+      try {
+        const student = students.find((s) => s.student_id === updates.student_id)
+        const courseId = student?.course_id || ''
+        const { topics } = await getCourseContent(courseId)
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === id
+              ? {
+                  ...row,
+                  course_id: courseId,
+                  topics: topics || [],
+                  topic_id: '',
+                  subtopic_id: '',
+                  subtopics: [],
+                }
+              : row,
+          ),
+        )
+      } catch (error) {
+        toast.error('Failed to load topics')
+      }
+    }
 
-          if (updates.topic_id) {
-            const { subtopics } = await getSubtopics(updates.topic_id)
-            newRow.subtopics = subtopics || []
-            newRow.subtopic_id = ''
-          }
-
-          return newRow
-        }
-        return row
-      }),
-    )
-    setRows(updatedRows)
+    if (updates.topic_id) {
+      try {
+        const { subtopics } = await getSubtopics(updates.topic_id)
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === id
+              ? {
+                  ...row,
+                  subtopics: subtopics || [],
+                  subtopic_id: '',
+                }
+              : row,
+          ),
+        )
+      } catch (error) {
+        toast.error('Failed to load subtopics')
+      }
+    }
   }
 
   const handleSubmit = async () => {
@@ -193,8 +211,9 @@ export function IndividualEntry() {
     }
 
     const entries = rows.map((r) => {
-      const marks = r.marks_obtained as number
-      const percentage = (marks / r.total_marks) * 100
+      const marks = parseFloat(r.marks_obtained.toString())
+      const total = parseFloat(r.total_marks.toString())
+      const percentage = (marks / total) * 100
       return {
         student_id: r.student_id,
         class_id: selectedClassId,
@@ -205,7 +224,7 @@ export function IndividualEntry() {
         work_type: r.work_type,
         work_subtype: r.work_subtype,
         marks_obtained: marks,
-        total_marks: r.total_marks,
+        total_marks: total,
         percentage: Math.round(percentage * 100) / 100,
         is_low_point: percentage < 80,
         assessed_date: format(r.assessed_date, 'yyyy-MM-dd'),
@@ -333,34 +352,218 @@ export function IndividualEntry() {
         </Button>
       </CardHeader>
 
-      <CardContent className="px-0 overflow-x-auto">
-        <div className="min-w-[1200px]">
+      <CardContent className="px-0">
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4 px-4">
+          {rows.map((row) => {
+            const percentage =
+              row.marks_obtained !== '' && row.total_marks !== ''
+                ? (parseFloat(row.marks_obtained.toString()) / parseFloat(row.total_marks.toString())) * 100
+                : 0
+            return (
+              <Card key={row.id} className="p-4 space-y-4 border border-gray-200 shadow-sm">
+                <div className="space-y-4">
+                  {/* Student */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Student</label>
+                    <Select
+                      value={row.student_id}
+                      onValueChange={(val) => updateRow(row.id, { student_id: val })}
+                    >
+                      <SelectTrigger className="w-full bg-white text-gray-900 border-gray-200">
+                        <SelectValue placeholder="Select student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {students.map((s) => (
+                          <SelectItem key={s.student_id} value={s.student_id}>
+                            {s.students.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Topic */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Topic</label>
+                    <Select
+                      value={row.topic_id}
+                      onValueChange={(val) => updateRow(row.id, { topic_id: val })}
+                      disabled={!row.student_id}
+                    >
+                      <SelectTrigger className="w-full bg-white text-gray-900 border-gray-200">
+                        <SelectValue placeholder="Topic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {row.topics.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Subtopic */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Subtopic</label>
+                    <Select
+                      value={row.subtopic_id}
+                      onValueChange={(val) => updateRow(row.id, { subtopic_id: val })}
+                      disabled={!row.topic_id}
+                    >
+                      <SelectTrigger className="w-full bg-white text-gray-900 border-gray-200">
+                        <SelectValue placeholder="Subtopic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {row.subtopics.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Type / Subtype */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Type</label>
+                      <Select
+                        value={row.work_type}
+                        onValueChange={(val: any) => updateRow(row.id, { work_type: val })}
+                      >
+                        <SelectTrigger className="w-full bg-white text-gray-900 border-gray-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="classwork">Classwork</SelectItem>
+                          <SelectItem value="homework">Homework</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Subtype</label>
+                      <Select
+                        value={row.work_subtype}
+                        onValueChange={(val: any) => updateRow(row.id, { work_subtype: val })}
+                      >
+                        <SelectTrigger className="w-full bg-white text-gray-900 border-gray-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="worksheet">Worksheet</SelectItem>
+                          <SelectItem value="pastpaper">Past Paper</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Marks / Total */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Marks</label>
+                      <Input
+                        type="number"
+                        value={row.marks_obtained}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (
+                            val !== '' &&
+                            parseFloat(val) > (parseFloat(row.total_marks.toString()) || 0)
+                          ) {
+                            toast.error('Marks cannot exceed total')
+                            return
+                          }
+                          updateRow(row.id, { marks_obtained: val })
+                        }}
+                        placeholder="0"
+                        className="bg-white text-gray-900 border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Total</label>
+                      <Input
+                        type="number"
+                        value={row.total_marks}
+                        onChange={(e) => updateRow(row.id, { total_marks: e.target.value })}
+                        placeholder="10"
+                        className="bg-white text-gray-900 border-gray-200"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Date</label>
+                    <div className="w-full">
+                      <DatePicker
+                        date={row.assessed_date}
+                        setDate={(date) => updateRow(row.id, { assessed_date: date || new Date() })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status & Remove */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2">
+                      {row.marks_obtained !== '' && (
+                        <>
+                          <span className="text-sm font-medium text-gray-900">
+                            {percentage.toFixed(1)}%
+                          </span>
+                          <LowPointBadge percentage={percentage} />
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeRow(row.id)}
+                      className="w-full max-w-[100px]"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto border rounded-lg bg-white/50">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50">
                 <TableHead className="w-[200px]">Student</TableHead>
-                <TableHead className="w-[180px]">Topic</TableHead>
-                <TableHead className="w-[180px]">Subtopic</TableHead>
-                <TableHead className="w-[130px]">Type / Sub</TableHead>
-                <TableHead className="w-[100px]">Marks</TableHead>
-                <TableHead className="w-[100px]">Total</TableHead>
-                <TableHead className="w-[150px]">Date</TableHead>
-                <TableHead className="w-[120px]">Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[250px]">Topic</TableHead>
+                <TableHead className="w-[250px]">Subtopic</TableHead>
+                <TableHead className="w-[140px]">Type / Sub</TableHead>
+                <TableHead className="w-[80px] text-center">Marks</TableHead>
+                <TableHead className="w-[80px] text-center">Total</TableHead>
+                <TableHead className="w-[140px]">Date</TableHead>
+                <TableHead className="w-[120px] text-center">Status</TableHead>
+                <TableHead className="w-[50px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((row) => {
                 const percentage =
-                  row.marks_obtained !== '' ? (row.marks_obtained / row.total_marks) * 100 : 0
+                  row.marks_obtained !== '' && row.total_marks !== ''
+                    ? (parseFloat(row.marks_obtained.toString()) /
+                        parseFloat(row.total_marks.toString())) *
+                      100
+                    : 0
                 return (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell>
                       <Select
                         value={row.student_id}
                         onValueChange={(val) => updateRow(row.id, { student_id: val })}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white text-gray-900 border-gray-200">
                           <SelectValue placeholder="Select student" />
                         </SelectTrigger>
                         <SelectContent>
@@ -378,7 +581,7 @@ export function IndividualEntry() {
                         onValueChange={(val) => updateRow(row.id, { topic_id: val })}
                         disabled={!row.student_id}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white text-gray-900 border-gray-200">
                           <SelectValue placeholder="Topic" />
                         </SelectTrigger>
                         <SelectContent>
@@ -396,7 +599,7 @@ export function IndividualEntry() {
                         onValueChange={(val) => updateRow(row.id, { subtopic_id: val })}
                         disabled={!row.topic_id}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white text-gray-900 border-gray-200">
                           <SelectValue placeholder="Subtopic" />
                         </SelectTrigger>
                         <SelectContent>
@@ -414,7 +617,7 @@ export function IndividualEntry() {
                           value={row.work_type}
                           onValueChange={(val: any) => updateRow(row.id, { work_type: val })}
                         >
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="h-8 text-[10px] bg-white text-gray-900 border-gray-200 px-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -426,7 +629,7 @@ export function IndividualEntry() {
                           value={row.work_subtype}
                           onValueChange={(val: any) => updateRow(row.id, { work_subtype: val })}
                         >
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="h-8 text-[10px] bg-white text-gray-900 border-gray-200 px-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -436,29 +639,32 @@ export function IndividualEntry() {
                         </Select>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-1">
                       <Input
                         type="number"
                         value={row.marks_obtained}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? '' : parseFloat(e.target.value)
-                          if (val !== '' && val > row.total_marks) {
+                          const val = e.target.value
+                          if (
+                            val !== '' &&
+                            parseFloat(val) > (parseFloat(row.total_marks.toString()) || 0)
+                          ) {
                             toast.error('Marks cannot exceed total')
                             return
                           }
-                          updateRow(row.id, { marks_obtained: val as any })
+                          updateRow(row.id, { marks_obtained: val })
                         }}
                         placeholder="0"
+                        className="bg-white text-gray-900 border-gray-200 text-center px-1"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-1">
                       <Input
                         type="number"
                         value={row.total_marks}
-                        onChange={(e) =>
-                          updateRow(row.id, { total_marks: parseFloat(e.target.value) || 0 })
-                        }
+                        onChange={(e) => updateRow(row.id, { total_marks: e.target.value })}
                         placeholder="10"
+                        className="bg-white text-gray-900 border-gray-200 text-center px-1"
                       />
                     </TableCell>
                     <TableCell>
@@ -469,18 +675,20 @@ export function IndividualEntry() {
                     </TableCell>
                     <TableCell>
                       {row.marks_obtained !== '' && (
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium">{percentage.toFixed(1)}%</span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-gray-900">
+                            {percentage.toFixed(1)}%
+                          </span>
                           <LowPointBadge percentage={percentage} />
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeRow(row.id)}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive h-8 w-8"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -102,12 +102,12 @@ export function FlagReportView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Course</TableHead>
-                    <TableHead className="text-right">Low Points</TableHead>
-                    <TableHead className="text-right">Flags</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[200px]">Student</TableHead>
+                    <TableHead className="w-[150px]">Class</TableHead>
+                    <TableHead className="w-[150px]">Course</TableHead>
+                    <TableHead className="w-[120px] text-right">Low Points</TableHead>
+                    <TableHead className="w-[100px] text-right">Flags</TableHead>
+                    <TableHead className="w-[150px]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

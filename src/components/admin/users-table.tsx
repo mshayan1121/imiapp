@@ -226,8 +226,14 @@ export function UsersTable({ users }: UsersTableProps) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const width = header.column.id === 'select' ? 'w-[40px]' : 
+                               header.column.id === 'full_name' ? 'w-[200px]' :
+                               header.column.id === 'email' ? 'w-[250px]' :
+                               header.column.id === 'role' ? 'w-[120px]' :
+                               header.column.id === 'created_at' ? 'w-[120px]' :
+                               header.column.id === 'actions' ? 'w-[80px]' : '';
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={width}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

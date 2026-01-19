@@ -214,13 +214,13 @@ export default function AdminFlagsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Class / Course</TableHead>
-                  <TableHead className="text-center">LP Count</TableHead>
-                  <TableHead className="text-center">Flags</TableHead>
-                  <TableHead>Action Required</TableHead>
-                  <TableHead>Contact Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[200px]">Student Name</TableHead>
+                  <TableHead className="w-[250px]">Class / Course</TableHead>
+                  <TableHead className="w-[100px] text-center">LP Count</TableHead>
+                  <TableHead className="w-[100px] text-center">Flags</TableHead>
+                  <TableHead className="w-[140px]">Action Required</TableHead>
+                  <TableHead className="w-[140px]">Contact Status</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
