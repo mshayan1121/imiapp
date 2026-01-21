@@ -147,14 +147,14 @@ export function GradeReportView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Topic</TableHead>
-                    <TableHead className="text-right">Marks</TableHead>
-                    <TableHead className="text-right">%</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="min-w-[120px]">Student</TableHead>
+                    <TableHead className="min-w-[100px]">Class</TableHead>
+                    <TableHead className="min-w-[120px]">Course</TableHead>
+                    <TableHead className="min-w-[150px]">Topic</TableHead>
+                    <TableHead className="text-right min-w-[90px] whitespace-nowrap">Marks</TableHead>
+                    <TableHead className="text-right min-w-[70px] whitespace-nowrap">%</TableHead>
+                    <TableHead className="min-w-[100px] whitespace-nowrap">Date</TableHead>
+                    <TableHead className="min-w-[100px] whitespace-nowrap">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -167,16 +167,18 @@ export function GradeReportView() {
                   ) : (
                     grades.map((grade) => (
                       <TableRow key={grade.id}>
-                        <TableCell>{grade.students?.name || 'N/A'}</TableCell>
-                        <TableCell>{grade.classes?.name || 'N/A'}</TableCell>
-                        <TableCell>{grade.courses?.name || 'N/A'}</TableCell>
-                        <TableCell>{grade.topics?.name || 'N/A'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="whitespace-nowrap">{grade.students?.name || 'N/A'}</TableCell>
+                        <TableCell className="whitespace-nowrap">{grade.classes?.name || 'N/A'}</TableCell>
+                        <TableCell className="whitespace-nowrap">{grade.courses?.name || 'N/A'}</TableCell>
+                        <TableCell className="min-w-0">
+                          <div className="truncate max-w-[200px]">{grade.topics?.name || 'N/A'}</div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono whitespace-nowrap">
                           {grade.marks_obtained}/{grade.total_marks}
                         </TableCell>
-                        <TableCell className="text-right">{grade.percentage}%</TableCell>
-                        <TableCell>{new Date(grade.assessed_date).toLocaleDateString()}</TableCell>
-                        <TableCell>{grade.work_type}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{grade.percentage}%</TableCell>
+                        <TableCell className="whitespace-nowrap">{new Date(grade.assessed_date).toLocaleDateString()}</TableCell>
+                        <TableCell className="whitespace-nowrap">{grade.work_type}</TableCell>
                       </TableRow>
                     ))
                   )}

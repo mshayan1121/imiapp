@@ -70,72 +70,73 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
 
   return (
     <div className="rounded-md border overflow-hidden bg-background">
-      <Table>
-        <TableHeader className="bg-muted/50">
-          <TableRow>
-            <TableHead className="w-[30px]"></TableHead>
-            <TableHead className="w-[200px]">Student</TableHead>
-            <TableHead className="w-[150px]">Course</TableHead>
-            <TableHead className="w-[250px]">Topic / Subtopic</TableHead>
-            <TableHead className="w-[140px]">Type</TableHead>
-            <TableHead className="w-[80px] text-right">Marks</TableHead>
-            <TableHead className="w-[80px] text-right">%</TableHead>
-            <TableHead className="w-[120px]">Status</TableHead>
-            <TableHead className="w-[120px]">Date</TableHead>
-            <TableHead className="w-[80px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
+      <div className="overflow-x-auto">
+        <Table className="min-w-[1200px]">
+          <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
-                No grades found matching the current filters.
-              </TableCell>
+              <TableHead className="w-[30px]"></TableHead>
+              <TableHead className="min-w-[150px]">Student</TableHead>
+              <TableHead className="min-w-[120px]">Course</TableHead>
+              <TableHead className="min-w-[200px]">Topic / Subtopic</TableHead>
+              <TableHead className="min-w-[120px]">Type</TableHead>
+              <TableHead className="w-[110px] text-right whitespace-nowrap shrink-0">Marks</TableHead>
+              <TableHead className="w-[80px] text-right whitespace-nowrap shrink-0">%</TableHead>
+              <TableHead className="min-w-[100px]">Status</TableHead>
+              <TableHead className="min-w-[100px] whitespace-nowrap">Date</TableHead>
+              <TableHead className="min-w-[80px] text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            data.map((grade) => (
-              <>
-                <TableRow key={grade.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell>
-                    <button
-                      onClick={() => toggleRow(grade.id)}
-                      className="p-1 hover:bg-accent rounded-md transition-colors"
-                    >
-                      {expandedRows.has(grade.id) ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </button>
-                  </TableCell>
-                  <TableCell className="font-medium">{grade.students?.name}</TableCell>
-                  <TableCell className="text-xs">{grade.courses?.name}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{grade.topics?.name}</span>
-                      <span className="text-xs text-muted-foreground">{grade.subtopics?.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <Badge variant="outline" className="w-fit text-[10px] uppercase py-0 h-4">
-                        {grade.work_type}
-                      </Badge>
-                      <Badge variant="secondary" className="w-fit text-[10px] uppercase py-0 h-4">
-                        {grade.work_subtype}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {grade.marks_obtained} / {grade.total_marks}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={`font-bold ${grade.is_low_point ? 'text-red-600' : 'text-green-600'}`}
-                    >
-                      {grade.percentage}%
-                    </span>
-                  </TableCell>
+          </TableHeader>
+          <TableBody>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                  No grades found matching the current filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.map((grade) => (
+                <>
+                  <TableRow key={grade.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell>
+                      <button
+                        onClick={() => toggleRow(grade.id)}
+                        className="p-1 hover:bg-accent rounded-md transition-colors"
+                      >
+                        {expandedRows.has(grade.id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                    </TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{grade.students?.name}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{grade.courses?.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium truncate">{grade.topics?.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{grade.subtopics?.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="w-fit text-[10px] uppercase py-0 h-4 whitespace-nowrap">
+                          {grade.work_type}
+                        </Badge>
+                        <Badge variant="secondary" className="w-fit text-[10px] uppercase py-0 h-4 whitespace-nowrap">
+                          {grade.work_subtype}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono whitespace-nowrap text-sm w-[110px] shrink-0">
+                      {grade.marks_obtained} / {grade.total_marks}
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap shrink-0">
+                      <span
+                        className={`font-bold ${grade.is_low_point ? 'text-red-600' : 'text-green-600'}`}
+                      >
+                        {grade.percentage}%
+                      </span>
+                    </TableCell>
                   <TableCell>
                     {grade.is_low_point ? (
                       <Badge
@@ -158,10 +159,10 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="text-xs whitespace-nowrap">
                     {format(new Date(grade.assessed_date), 'dd MMM yyyy')}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -261,7 +262,8 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
             ))
           )}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
 
       <EditGradeDialog
         grade={editingGrade}

@@ -28,7 +28,7 @@ export async function getPerformanceReport(filters: ReportFilters) {
   let classQuery = supabase.from('classes').select(`
     id,
     name,
-    profiles:teacher_id (full_name)
+    teacher_id
   `)
 
   if (filters.class_id) {
@@ -37,8 +37,28 @@ export async function getPerformanceReport(filters: ReportFilters) {
 
   const { data: classes } = await classQuery
 
+  if (!classes || classes.length === 0) {
+    return { data: [], summary: { totalClasses: 0, overallAvg: 0 } }
+  }
+
+  // Fetch teacher profiles separately
+  const teacherIds = Array.from(new Set(
+    classes.map((cls: any) => cls.teacher_id).filter(Boolean)
+  )) as string[]
+
+  const { data: teacherProfiles } = teacherIds.length > 0
+    ? await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', teacherIds)
+    : { data: null }
+
+  const teacherMap = new Map(
+    (teacherProfiles || []).map((t: any) => [t.id, t.full_name])
+  )
+
   const classPerformance = await Promise.all(
-    (classes || []).map(async (cls: any) => {
+    classes.map(async (cls: any) => {
       const { data: grades } = await supabase
         .from('grades')
         .select('percentage, is_low_point, student_id')
@@ -55,7 +75,7 @@ export async function getPerformanceReport(filters: ReportFilters) {
       return {
         id: cls.id,
         name: cls.name,
-        teacher: Array.isArray(cls.profiles) ? cls.profiles[0]?.full_name : cls.profiles?.full_name,
+        teacher: teacherMap.get(cls.teacher_id) || 'Unassigned',
         avgPercentage: Math.round(avg),
         lpCount,
         gradeCount: grades?.length || 0,
