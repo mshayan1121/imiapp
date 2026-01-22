@@ -84,7 +84,7 @@ interface ImportLogData {
   totalRows: number
   successCount: number
   failedCount: number
-  results: Record<string, unknown>[]
+  results: Record<string, unknown>
 }
 
 export async function logImport(data: ImportLogData) {
