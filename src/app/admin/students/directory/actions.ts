@@ -1,11 +1,23 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { StudentWithStats, StudentDirectoryFilters } from '@/types/students'
+import { 
+  StudentWithStats, 
+  StudentDirectoryFilters, 
+  TeacherStudentRpcResult,
+  RawStudentData,
+  NormalizedClassStudent 
+} from '@/types/students'
 import { revalidatePath } from 'next/cache'
 import { unstable_cache } from 'next/cache'
 import { measureAsync } from '@/lib/performance'
 import { getActiveTerm } from '@/utils/supabase/cached-queries'
+import { logger } from '@/lib/logger'
+import { uuidSchema } from '@/lib/schemas'
+
+// Constants
+const MAX_PAGE_SIZE = 100
+const MAX_ENROLLED_IDS_LIMIT = 10000
 
 export async function getDirectoryData(
   filters: StudentDirectoryFilters,
@@ -15,9 +27,11 @@ export async function getDirectoryData(
   teacherId?: string
 ) {
   const route = role === 'teacher' ? '/teacher/students' : '/admin/students/directory'
-  const supabase = await createClient()
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
+  // Validate and limit page size to prevent abuse
+  const validatedPageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE)
+  const validatedPage = Math.max(1, page)
+  const from = (validatedPage - 1) * validatedPageSize
+  const to = from + validatedPageSize - 1
 
   // Use cache for the actual data fetching
   const cacheKey = `students-directory-${role}-${teacherId || 'all'}-${JSON.stringify(filters)}-${page}`
@@ -72,8 +86,7 @@ export async function getDirectoryData(
           )
           const rpcTime = Date.now() - rpcStartTime
 
-          console.log('[PERF] RPC Call:', {
-            time: `${rpcTime}ms`,
+          logger.performance('RPC Call', rpcTime, {
             hasData: !!studentsWithStats,
             dataLength: studentsWithStats?.length,
             error: rpcError?.message,
@@ -81,7 +94,7 @@ export async function getDirectoryData(
           })
 
           if (rpcError) {
-            console.error('[ERROR] RPC Failed:', rpcError)
+            logger.error('RPC Failed:', rpcError)
             // Fallback to old method if RPC fails
           } else if (studentsWithStats && studentsWithStats.length > 0) {
             const totalCount = studentsWithStats[0]?.total_count || 0
@@ -94,9 +107,9 @@ export async function getDirectoryData(
               .single()
 
             // Build students directly from RPC results (includes class_students as JSONB)
-            let studentsWithFullStats: StudentWithStats[] = studentsWithStats.map((rpcRow: any) => {
+            let studentsWithFullStats: StudentWithStats[] = (studentsWithStats as TeacherStudentRpcResult[]).map((rpcRow) => {
               // Parse class_students JSONB from RPC
-              const classStudents = (rpcRow.class_students || []).map((cs: any) => ({
+              const classStudents = (rpcRow.class_students || []).map((cs) => ({
                 class: {
                   ...cs.class,
                   teacher: teacherProfile ? {
@@ -118,7 +131,7 @@ export async function getDirectoryData(
                   low_points: Number(rpcRow.low_points || 0),
                   flag_count: Number(rpcRow.flag_count || 0),
                   average_percentage: Number(rpcRow.avg_percentage || 0),
-                  status: rpcRow.status as 'On Track' | 'At Risk' | 'Struggling'
+                  status: rpcRow.status
                 }
               }
             })
@@ -180,10 +193,13 @@ export async function getDirectoryData(
           const { data: enrolledIds } = await supabase
             .from('class_students')
             .select('student_id')
-            .limit(10000) // Reasonable limit
+            .limit(MAX_ENROLLED_IDS_LIMIT)
           const ids = Array.from(new Set(enrolledIds?.map(s => s.student_id) || []))
-          if (ids.length > 0) {
-            query = query.not('id', 'in', `(${ids.map(id => `'${id}'`).join(',')})`)
+          // Validate all IDs are valid UUIDs to prevent injection
+          const validIds = ids.filter(id => uuidSchema.safeParse(id).success)
+          if (validIds.length > 0) {
+            // Use Supabase's proper array filtering - it handles parameterization safely
+            query = query.not('id', 'in', `(${validIds.join(',')})`)
           }
         }
 
@@ -195,12 +211,12 @@ export async function getDirectoryData(
           return { students: [], count: 0, error: studentsError.message }
         }
 
-        const studentsData = (studentsDataRaw || []).map((s: any) => ({
+        // Normalize the raw student data
+        const studentsData = (studentsDataRaw || []).map((s: RawStudentData) => ({
           ...s,
-          class_students: (s.class_students || []).map((cs: any) => ({
-            ...cs,
-            class: Array.isArray(cs.class) ? cs.class[0] : cs.class,
-            course: Array.isArray(cs.course) ? cs.course[0] : cs.course,
+          class_students: (s.class_students || []).map((cs): NormalizedClassStudent => ({
+            class: Array.isArray(cs.class) ? (cs.class as NormalizedClassStudent['class'][])[0] : cs.class as NormalizedClassStudent['class'],
+            course: Array.isArray(cs.course) ? (cs.course as NormalizedClassStudent['course'][])[0] : cs.course as NormalizedClassStudent['course'],
           }))
         }))
 
@@ -209,8 +225,8 @@ export async function getDirectoryData(
         
         // Get all teacher IDs from the classes
         const teacherIds = Array.from(new Set(
-          studentsData.flatMap(s => s.class_students.map((cs: any) => cs.class?.teacher_id))
-        )).filter(Boolean) as string[]
+          studentsData.flatMap(s => s.class_students.map((cs) => cs.class?.teacher_id))
+        )).filter((id): id is string => Boolean(id))
 
         const [gradesRes, profilesRes] = await Promise.all([
           supabase
@@ -244,8 +260,8 @@ export async function getDirectoryData(
             else if (avgPercentage < 80) status = 'At Risk'
           }
 
-          const formattedClassStudents = student.class_students.map((cs: any) => {
-            const teacherProfile = profilesData?.find(p => p.id === cs.class.teacher_id)
+          const formattedClassStudents = student.class_students.map((cs) => {
+            const teacherProfile = profilesData?.find(p => p.id === cs.class?.teacher_id)
             return {
               ...cs,
               class: {
@@ -345,7 +361,25 @@ export async function getFilterOptions(role: 'admin' | 'teacher', teacherId?: st
 export async function bulkEnrollStudents(studentIds: string[], classId: string, courseId: string) {
   const supabase = await createClient()
   
-  const enrollments = studentIds.map(studentId => ({
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.user_metadata.role !== 'admin') {
+    return { error: 'Not authorized' }
+  }
+
+  // Validate all UUIDs
+  const classIdValidation = uuidSchema.safeParse(classId)
+  const courseIdValidation = uuidSchema.safeParse(courseId)
+  if (!classIdValidation.success || !courseIdValidation.success) {
+    return { error: 'Invalid class or course ID' }
+  }
+
+  const validStudentIds = studentIds.filter(id => uuidSchema.safeParse(id).success)
+  if (validStudentIds.length === 0) {
+    return { error: 'No valid student IDs provided' }
+  }
+
+  const enrollments = validStudentIds.map(studentId => ({
     student_id: studentId,
     class_id: classId,
     course_id: courseId
@@ -354,6 +388,7 @@ export async function bulkEnrollStudents(studentIds: string[], classId: string, 
   const { error } = await supabase.from('class_students').insert(enrollments)
 
   if (error) {
+    logger.error('Bulk enrollment failed:', error)
     return { error: error.message }
   }
 

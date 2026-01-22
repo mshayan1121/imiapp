@@ -1,17 +1,20 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/utils/supabase/admin'
+import { logger } from '@/lib/logger'
 
-// Initialize admin client for user management
-// This requires SUPABASE_SERVICE_ROLE_KEY to be set in environment variables
-const supabaseAdmin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
+/**
+ * Check for existing emails in the database before bulk import
+ */
 export async function checkExistingEmails(emails: string[]) {
   const supabase = await createClient()
+  
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.user_metadata.role !== 'admin') {
+    return []
+  }
   
   // We assume emails are stored in lowercase in the database
   // If not, this check might miss some case-variant duplicates
@@ -21,11 +24,9 @@ export async function checkExistingEmails(emails: string[]) {
     .in('email', emails)
 
   if (error) {
-    console.error('Error checking existing emails:', error)
+    logger.error('Error checking existing emails:', error)
     // If the error is due to the table not existing or permission issues, 
     // we should return an empty array instead of crashing the whole process
-    // But for critical errors, we log and return empty to fail open or throw?
-    // Let's return empty array to avoid crash, but log error.
     return []
   }
 
@@ -39,8 +40,17 @@ export async function importTeacher(teacher: {
 }) {
   const supabase = await createClient()
   
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.user_metadata.role !== 'admin') {
+    return { success: false, error: 'Not authorized' }
+  }
+  
   try {
-    // 1. Create Auth User using Admin API
+    // Create admin client per-request for security
+    const supabaseAdmin = createAdminClient()
+    
+    // Create Auth User using Admin API
     // We auto-confirm the email so they can login immediately
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: teacher.email,
@@ -53,7 +63,7 @@ export async function importTeacher(teacher: {
     })
 
     if (authError) {
-      console.error(`Auth creation failed for ${teacher.email}:`, authError)
+      logger.error(`Auth creation failed for ${teacher.email}:`, authError)
       return { success: false, error: authError.message }
     }
 
@@ -62,25 +72,28 @@ export async function importTeacher(teacher: {
     }
 
     return { success: true }
-  } catch (error: any) {
-    console.error(`Unexpected error importing ${teacher.email}:`, error)
-    return { success: false, error: error.message || 'Unknown error' }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error(`Unexpected error importing ${teacher.email}:`, error)
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function logImport(data: {
+interface ImportLogData {
   fileName: string
   totalRows: number
   successCount: number
   failedCount: number
-  results: any
-}) {
+  results: Record<string, unknown>[]
+}
+
+export async function logImport(data: ImportLogData) {
   const supabase = await createClient()
   
   // Get current user for 'uploaded_by' field
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) return
+  if (!user || user.user_metadata.role !== 'admin') return
 
   const { error } = await supabase.from('import_logs').insert({
     import_type: 'teachers',
@@ -93,6 +106,6 @@ export async function logImport(data: {
   })
 
   if (error) {
-    console.error('Failed to log import:', error)
+    logger.error('Failed to log import:', error)
   }
 }

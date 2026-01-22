@@ -45,9 +45,9 @@ export function usePagePerformance() {
             : 'N/A',
         }
 
-        console.log(`⚡ [PERF] Page Load: ${pathname}`, metrics)
+        // Performance logging disabled
       } else {
-        console.log(`⚡ [PERF] Page Load: ${pathname} - ${loadTime.toFixed(2)}ms`)
+        // Performance logging disabled
       }
     }
 
@@ -73,7 +73,7 @@ export function useNavigationPerformance() {
     const handleRouteChangeComplete = () => {
       if ((window as any).__navigationStart) {
         const duration = performance.now() - (window as any).__navigationStart
-        console.log(`🚀 [PERF] Navigation: ${duration.toFixed(2)}ms`)
+        // Performance logging disabled
         delete (window as any).__navigationStart
       }
     }

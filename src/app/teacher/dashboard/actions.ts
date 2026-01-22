@@ -168,20 +168,10 @@ export async function getDashboardData() {
           .limit(10),
         // Use database function to get class performance in one query
         classIds.length > 0 && finalActiveTerm
-          ? (async () => {
-              const rpcStart = Date.now()
-              const result = await supabase.rpc('get_class_performance_summary', {
-                p_teacher_id: cachedUser.id,
-                p_term_id: finalActiveTerm.id,
-              })
-              console.log('[PERF] Dashboard RPC:', {
-                time: `${Date.now() - rpcStart}ms`,
-                hasData: !!result.data,
-                dataLength: result.data?.length,
-                error: result.error?.message
-              })
-              return result
-            })()
+          ? supabase.rpc('get_class_performance_summary', {
+              p_teacher_id: cachedUser.id,
+              p_term_id: finalActiveTerm.id,
+            })
           : Promise.resolve({ data: [] }),
       ])
 

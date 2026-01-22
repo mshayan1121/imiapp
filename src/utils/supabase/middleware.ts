@@ -1,22 +1,33 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function getEnvVar(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
 export async function updateSession(request: NextRequest) {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now()
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  const supabaseUrl = getEnvVar('NEXT_PUBLIC_SUPABASE_URL')
+  const supabaseAnonKey = getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -67,12 +78,7 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Log middleware performance
-  const endTime = typeof performance !== 'undefined' ? performance.now() : Date.now()
-  const duration = endTime - startTime
-  if (duration > 50) {
-    console.log(`⚠️ [PERF] Middleware: ${path} - ${duration.toFixed(2)}ms`)
-  }
+  // Performance logging disabled
 
   return supabaseResponse
 }
