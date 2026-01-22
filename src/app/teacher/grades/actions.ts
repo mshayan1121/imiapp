@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { Grade, GradeFiltersState } from '@/types/grades'
 import { unstable_cache } from 'next/cache'
+import { measureAsync } from '@/lib/performance'
 
 export async function getFiltersData() {
   // Auth check outside cache (uses cookies)
@@ -66,58 +67,81 @@ export async function getClassStudents(classId: string) {
 export async function getGrades(
   filters: GradeFiltersState,
 ): Promise<{ data: Grade[]; count: number }> {
-  const supabase = await createClient()
+  // Auth check outside cache (uses cookies)
+  const supabaseAuth = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabaseAuth.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  let query = supabase
-    .from('grades')
-    .select(
-      `
-      *,
-      students (id, name),
-      classes (id, name),
-      courses (id, name, qualification_id, board_id, subject_id),
-      topics (id, name),
-      subtopics (id, name)
-    `,
-      { count: 'exact' },
-    )
-    .eq('entered_by', user.id)
-    .order('assessed_date', { ascending: false })
+  // Capture userId before cache function
+  const userId = user.id
 
-  if (filters.class_id) query = query.eq('class_id', filters.class_id)
-  if (filters.term_id) query = query.eq('term_id', filters.term_id)
-  if (filters.student_id && filters.student_id !== 'all')
-    query = query.eq('student_id', filters.student_id)
-  if (filters.work_type && filters.work_type !== 'all')
-    query = query.eq('work_type', filters.work_type)
-  if (filters.topic_id) query = query.eq('topic_id', filters.topic_id)
-  if (filters.subtopic_id) query = query.eq('subtopic_id', filters.subtopic_id)
+  // Create cache key from filters
+  const cacheKey = `grades-${userId}-${JSON.stringify(filters)}`
 
-  const page = filters.page || 1
-  const limit = filters.limit || 20
-  const from = (page - 1) * limit
-  const to = from + limit - 1
+  // Cache grades data per teacher and filter combination
+  return unstable_cache(
+    async () => {
+      return measureAsync('Grades Data Fetch', async () => {
+        // Use admin client for read-only queries (doesn't require cookies)
+        const { createAdminClient } = await import('@/utils/supabase/admin')
+        const supabase = createAdminClient()
 
-  query = query.range(from, to)
+        let query = supabase
+        .from('grades')
+        .select(
+          `
+          *,
+          students (id, name),
+          classes (id, name),
+          courses (id, name, qualification_id, board_id, subject_id),
+          topics (id, name),
+          subtopics (id, name)
+        `,
+          { count: 'exact' },
+        )
+        .eq('entered_by', userId)
+        .order('assessed_date', { ascending: false })
 
-  const { data: gradesData, count, error } = await query
+      if (filters.class_id) query = query.eq('class_id', filters.class_id)
+      if (filters.term_id) query = query.eq('term_id', filters.term_id)
+      if (filters.student_id && filters.student_id !== 'all')
+        query = query.eq('student_id', filters.student_id)
+      if (filters.work_type && filters.work_type !== 'all')
+        query = query.eq('work_type', filters.work_type)
+      if (filters.topic_id) query = query.eq('topic_id', filters.topic_id)
+      if (filters.subtopic_id) query = query.eq('subtopic_id', filters.subtopic_id)
 
-  if (error) throw error
-  
-  const grades = (gradesData || []).map((g: any) => ({
-    ...g,
-    students: Array.isArray(g.students) ? g.students[0] : g.students,
-    classes: Array.isArray(g.classes) ? g.classes[0] : g.classes,
-    courses: Array.isArray(g.courses) ? g.courses[0] : g.courses,
-    topics: Array.isArray(g.topics) ? g.topics[0] : g.topics,
-    subtopics: Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics,
-  }))
+      const page = filters.page || 1
+      const limit = filters.limit || 20
+      const from = (page - 1) * limit
+      const to = from + limit - 1
 
-  return { data: grades as Grade[], count: count || 0 }
+      query = query.range(from, to)
+
+      const { data: gradesData, count, error } = await query
+
+      if (error) throw error
+      
+        const grades = (gradesData || []).map((g: any) => ({
+          ...g,
+          students: Array.isArray(g.students) ? g.students[0] : g.students,
+          classes: Array.isArray(g.classes) ? g.classes[0] : g.classes,
+          courses: Array.isArray(g.courses) ? g.courses[0] : g.courses,
+          topics: Array.isArray(g.topics) ? g.topics[0] : g.topics,
+          subtopics: Array.isArray(g.subtopics) ? g.subtopics[0] : g.subtopics,
+        }))
+
+        return { data: grades as Grade[], count: count || 0 }
+      }, { route: '/teacher/grades', cache: 'enabled' })
+    },
+    [cacheKey],
+    {
+      revalidate: 60, // 1 minute cache - grades change frequently
+      tags: ['grades', `teacher-${userId}`]
+    }
+  )()
 }
 
 export async function updateGrade(gradeId: string, updates: Partial<Grade>) {

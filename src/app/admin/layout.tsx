@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { Suspense } from 'react'
+import { PerformanceTracker } from '@/components/performance-tracker'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -34,6 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </Suspense>
       }
     >
+      <PerformanceTracker />
       {children}
     </DashboardShell>
   )

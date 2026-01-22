@@ -19,4 +19,13 @@ export const logger = {
       console.debug(`[DEBUG] ${message}`, ...args)
     }
   },
+  performance: (label: string, duration: number, metadata?: Record<string, any>) => {
+    const emoji = duration < 200 ? '⚡' : duration < 500 ? '✅' : duration < 1000 ? '⚠️' : '🐌'
+    const message = `${emoji} [PERF] ${label}: ${duration.toFixed(2)}ms`
+    if (metadata) {
+      console.log(message, metadata)
+    } else {
+      console.log(message)
+    }
+  },
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import {
   Table,
   TableBody,
@@ -95,8 +95,8 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
               </TableRow>
             ) : (
               data.map((grade) => (
-                <>
-                  <TableRow key={grade.id} className="hover:bg-muted/30 transition-colors">
+                <Fragment key={grade.id}>
+                  <TableRow className="hover:bg-muted/30 transition-colors">
                     <TableCell>
                       <button
                         onClick={() => toggleRow(grade.id)}
@@ -258,7 +258,7 @@ export function GradeHistoryTable({ data, onUpdate }: GradeHistoryTableProps) {
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))
           )}
         </TableBody>

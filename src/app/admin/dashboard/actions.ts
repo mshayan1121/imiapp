@@ -3,21 +3,24 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { unstable_cache } from 'next/cache'
+import { measureAsync } from '@/lib/performance'
+import { logger } from '@/lib/logger'
 
 export async function getAdminDashboardData() {
-  // Auth check must happen OUTSIDE the cache function (uses cookies)
-  const supabaseAuth = await createClient()
-  const {
-    data: { user },
-  } = await supabaseAuth.auth.getUser()
+  return measureAsync('Admin Dashboard Data Fetch', async () => {
+    // Auth check must happen OUTSIDE the cache function (uses cookies)
+    const supabaseAuth = await createClient()
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser()
 
-  if (!user || user.user_metadata.role !== 'admin') {
-    throw new Error('Not authorized')
-  }
+    if (!user || user.user_metadata.role !== 'admin') {
+      throw new Error('Not authorized')
+    }
 
-  // Cache the data fetching part - use admin client that doesn't need cookies
-  return unstable_cache(
-    async () => {
+    // Cache the data fetching part - use admin client that doesn't need cookies
+    return unstable_cache(
+      async () => {
       // Use admin client for read-only queries (doesn't require cookies)
       const { createAdminClient } = await import('@/utils/supabase/admin')
       const supabase = createAdminClient()
@@ -68,6 +71,7 @@ export async function getAdminDashboardData() {
       .select('student_id')
       .eq('term_id', activeTerm.id)
       .eq('is_low_point', true)
+      .limit(1000) // Limit to prevent massive queries
 
     const studentLpCounts: Record<string, number> = {}
     lpData?.forEach((g) => {
@@ -164,29 +168,33 @@ export async function getAdminDashboardData() {
   let instituteAvg = 0
   let lpPercentage = 0
   let flagRate = 0
+  let allGrades: any[] = []
   if (activeTerm) {
-    const { data: allGrades } = await supabase
+    const { data: gradesData } = await supabase
       .from('grades')
       .select('percentage, is_low_point, student_id')
       .eq('term_id', activeTerm.id)
+      .limit(2000) // Limit to prevent massive queries
 
-    if (allGrades && allGrades.length > 0) {
-      instituteAvg = allGrades.reduce((acc, g) => acc + Number(g.percentage), 0) / allGrades.length
+    allGrades = gradesData || []
+
+    if (allGrades.length > 0) {
+      instituteAvg = allGrades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / allGrades.length
       
       const studentLpCounts: Record<string, number> = {}
-      allGrades.forEach((g) => {
+      allGrades.forEach((g: any) => {
         if (g.is_low_point) {
           studentLpCounts[g.student_id] = (studentLpCounts[g.student_id] || 0) + 1
         }
       })
       
-      const flaggedStudentCount = Object.values(studentLpCounts).filter(count => count >= 3).length
+      const flaggedStudentCount = Object.values(studentLpCounts).filter((count: number) => count >= 3).length
       flagRate = (flaggedStudentCount / (totalStudents || 1)) * 100
-      lpPercentage = (allGrades.filter((g) => g.is_low_point).length / allGrades.length) * 100
+      lpPercentage = (allGrades.filter((g: any) => g.is_low_point).length / allGrades.length) * 100
     }
   }
 
-  // 6. Class Performance Breakdown
+  // 6. Class Performance Breakdown - Optimized to avoid N+1 queries
   const { data: allClassesRaw } = await supabase
     .from('classes')
     .select(`
@@ -201,90 +209,141 @@ export async function getAdminDashboardData() {
     profiles: Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles,
   }))
 
+  const classIds = allClasses.map((cls) => cls.id)
+
+  // Fetch all data in parallel instead of N+1 queries
+  const classStudentCountPromises = classIds.map((classId) =>
+    supabase
+      .from('class_students')
+      .select('id', { count: 'exact', head: true })
+      .eq('class_id', classId)
+  )
+
+  const allClassDataPromises = [
+    ...classStudentCountPromises,
+    activeTerm && classIds.length > 0
+      ? supabase
+          .from('grades')
+          .select('class_id, percentage, is_low_point, student_id')
+          .in('class_id', classIds)
+          .eq('term_id', activeTerm.id)
+          .limit(2000) // Limit total grades fetched
+      : Promise.resolve({ data: [] }),
+  ]
+
+  const allClassDataResults = await Promise.all(allClassDataPromises)
+  const classStudentCounts = allClassDataResults.slice(0, -1) as Array<{ count: number | null }>
+  const { data: allClassGrades } = allClassDataResults[allClassDataResults.length - 1] as { data: any[] }
+
+  // Group grades by class
+  const gradesByClass = (allClassGrades || []).reduce((acc: Record<string, any[]>, g: any) => {
+    if (!acc[g.class_id]) {
+      acc[g.class_id] = []
+    }
+    acc[g.class_id].push(g)
+    return acc
+  }, {} as Record<string, any[]>)
+
   const classPerformance = activeTerm
-    ? await Promise.all(
-        (allClasses || []).map(async (cls) => {
-          const { count: studentCount } = await supabase
-            .from('class_students')
-            .select('id', { count: 'exact', head: true })
-            .eq('class_id', cls.id)
+    ? allClasses.map((cls, index) => {
+        const grades = gradesByClass[cls.id] || []
 
-          const { data: grades } = await supabase
-            .from('grades')
-            .select('percentage, is_low_point, student_id')
-            .eq('class_id', cls.id)
-            .eq('term_id', activeTerm.id)
+        const avg =
+          grades.length > 0
+            ? grades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / grades.length
+            : 0
 
-          const avg =
-            grades && grades.length > 0
-              ? grades.reduce((acc, g) => acc + Number(g.percentage), 0) / grades.length
-              : 0
+        const lpCount = grades.filter((g: any) => g.is_low_point).length
 
-          const lpCount = grades?.filter((g) => g.is_low_point).length || 0
-          
-          // Calculate flags for this class
-          const classStudentLps: Record<string, number> = {}
-          grades?.forEach(g => {
-            if (g.is_low_point) {
-              classStudentLps[g.student_id] = (classStudentLps[g.student_id] || 0) + 1
-            }
-          })
-          
-          let classFlagCount = 0
-          Object.values(classStudentLps).forEach(count => {
-            if (count >= 5) classFlagCount += 3
-            else if (count === 4) classFlagCount += 2
-            else if (count === 3) classFlagCount += 1
-          })
-
-          const profile = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
-
-          return {
-            id: cls.id,
-            name: cls.name,
-            teacher: profile?.full_name || 'Unassigned',
-            studentCount: studentCount || 0,
-            gradesEntered: grades?.length || 0,
-            avgPercentage: Math.round(avg),
-            lpCount,
-            flagCount: classFlagCount,
+        // Calculate flags for this class
+        const classStudentLps: Record<string, number> = {}
+        grades.forEach((g: any) => {
+          if (g.is_low_point) {
+            classStudentLps[g.student_id] = (classStudentLps[g.student_id] || 0) + 1
           }
-        }),
-      )
+        })
+
+        let classFlagCount = 0
+        Object.values(classStudentLps).forEach((count) => {
+          if (count >= 5) classFlagCount += 3
+          else if (count === 4) classFlagCount += 2
+          else if (count === 3) classFlagCount += 1
+        })
+
+        const profile = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
+
+        return {
+          id: cls.id,
+          name: cls.name,
+          teacher: profile?.full_name || 'Unassigned',
+          studentCount: classStudentCounts[index]?.count || 0,
+          gradesEntered: grades.length,
+          avgPercentage: Math.round(avg),
+          lpCount,
+          flagCount: classFlagCount,
+        }
+      })
     : []
 
-  // 7. Teacher Activity Summary
+  // 7. Teacher Activity Summary - Optimized to avoid N+1 queries
   const { data: teachers } = await supabase
     .from('profiles')
     .select('id, full_name, role')
     .eq('role', 'teacher')
     .limit(50)
 
+  const teacherIds = (teachers || []).map((t) => t.id)
+
+  // Fetch all teacher data in parallel
+  const teacherClassCountPromises = teacherIds.map((teacherId) =>
+    supabase
+      .from('classes')
+      .select('id', { count: 'exact', head: true })
+      .eq('teacher_id', teacherId)
+  )
+
+  const allTeacherDataPromises = [
+    ...teacherClassCountPromises,
+    activeTerm && teacherIds.length > 0
+      ? supabase
+          .from('grades')
+          .select('entered_by, created_at')
+          .in('entered_by', teacherIds)
+          .eq('term_id', activeTerm.id)
+          .order('created_at', { ascending: false })
+          .limit(500) // Limit to recent grades only
+      : Promise.resolve({ data: [] }),
+  ]
+
+  const allTeacherDataResults = await Promise.all(allTeacherDataPromises)
+  const teacherClassCounts = allTeacherDataResults.slice(0, -1) as Array<{ count: number | null }>
+  const { data: allTeacherGrades } = allTeacherDataResults[allTeacherDataResults.length - 1] as { data: any[] }
+
+  // Group grades by teacher and find most recent
+  const gradesByTeacher = (allTeacherGrades || []).reduce((acc: Record<string, any[]>, g: any) => {
+    if (!acc[g.entered_by]) {
+      acc[g.entered_by] = []
+    }
+    acc[g.entered_by].push(g)
+    return acc
+  }, {} as Record<string, any[]>)
+
   const teacherSummary = activeTerm
-    ? await Promise.all(
-        (teachers || []).map(async (t) => {
-          const { count: classCount } = await supabase
-            .from('classes')
-            .select('id', { count: 'exact', head: true })
-            .eq('teacher_id', t.id)
+    ? (teachers || []).map((t, index) => {
+        const teacherGrades = gradesByTeacher[t.id] || []
+        const lastActivity = teacherGrades.length > 0
+          ? teacherGrades.sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            )[0]?.created_at || null
+          : null
 
-          const { data: teacherGrades } = await supabase
-            .from('grades')
-            .select('id, created_at')
-            .eq('entered_by', t.id)
-            .eq('term_id', activeTerm.id)
-
-          return {
-            id: t.id,
-            name: t.full_name || 'Unknown',
-            classCount: classCount || 0,
-            lastActivity:
-              teacherGrades?.sort(
-                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-              )[0]?.created_at || null,
-          }
-        }),
-      )
+        return {
+          id: t.id,
+          name: t.full_name || 'Unknown',
+          classCount: teacherClassCounts[index]?.count || 0,
+          lastActivity,
+        }
+      })
     : []
 
   // 8. Performance Trends Data
@@ -295,26 +354,40 @@ export async function getAdminDashboardData() {
   }
 
   if (activeTerm) {
-    // 8.1 Performance over terms
+    // 8.1 Performance over terms - Optimized to avoid N+1 queries
     const { data: allTerms } = await supabase
       .from('terms')
       .select('id, name')
       .order('start_date', { ascending: true })
       .limit(50)
-    
-    if (allTerms) {
-      performanceTrends.performanceData = await Promise.all(allTerms.map(async (term) => {
-        const { data: termGrades } = await supabase
-          .from('grades')
-          .select('percentage')
-          .eq('term_id', term.id)
-        
-        const avg = termGrades && termGrades.length > 0 
-          ? termGrades.reduce((acc, g) => acc + Number(g.percentage), 0) / termGrades.length 
-          : 0
-        
+
+    if (allTerms && allTerms.length > 0) {
+      const termIds = allTerms.map((t) => t.id)
+      // Fetch all grades for all terms in one query
+      const { data: allTermGrades } = await supabase
+        .from('grades')
+        .select('term_id, percentage')
+        .in('term_id', termIds)
+        .limit(5000) // Limit total grades for trends
+
+      // Group grades by term
+      const gradesByTerm = (allTermGrades || []).reduce((acc: Record<string, any[]>, g: any) => {
+        if (!acc[g.term_id]) {
+          acc[g.term_id] = []
+        }
+        acc[g.term_id].push(g)
+        return acc
+      }, {} as Record<string, any[]>)
+
+      performanceTrends.performanceData = allTerms.map((term) => {
+        const termGrades = gradesByTerm[term.id] || []
+        const avg =
+          termGrades.length > 0
+            ? termGrades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / termGrades.length
+            : 0
+
         return { term: term.name, avg: Math.round(avg) }
-      }))
+      })
     }
 
     // 8.2 Flags by subject
@@ -330,15 +403,15 @@ export async function getAdminDashboardData() {
 
     if (subjectGrades) {
       const subjectLpMap: Record<string, Record<string, number>> = {} // subject -> student_id -> lp_count
-      subjectGrades.forEach(g => {
+      subjectGrades.forEach((g: any) => {
         const subjectName = (g.courses as any)?.name || 'Unknown'
         if (!subjectLpMap[subjectName]) subjectLpMap[subjectName] = {}
         subjectLpMap[subjectName][g.student_id] = (subjectLpMap[subjectName][g.student_id] || 0) + 1
       })
 
-      performanceTrends.subjectData = Object.entries(subjectLpMap).map(([subject, students]) => {
+      performanceTrends.subjectData = Object.entries(subjectLpMap).map(([subject, students]: [string, Record<string, number>]) => {
         let subjectFlagCount = 0
-        Object.values(students).forEach(count => {
+        Object.values(students).forEach((count: number) => {
           if (count >= 5) subjectFlagCount += 3
           else if (count === 4) subjectFlagCount += 2
           else if (count === 3) subjectFlagCount += 1
@@ -347,16 +420,13 @@ export async function getAdminDashboardData() {
       })
     }
 
-    // 8.3 Grade distribution
-    const { data: distGrades } = await supabase
-      .from('grades')
-      .select('percentage')
-      .eq('term_id', activeTerm.id)
+    // 8.3 Grade distribution - Reuse allGrades data instead of fetching again
+    const distGrades = allGrades
 
-    if (distGrades) {
-      const low = distGrades.filter(g => g.percentage < 60).length
-      const mid = distGrades.filter(g => g.percentage >= 60 && g.percentage <= 80).length
-      const high = distGrades.filter(g => g.percentage > 80).length
+    if (distGrades && distGrades.length > 0) {
+      const low = distGrades.filter((g: any) => g.percentage < 60).length
+      const mid = distGrades.filter((g: any) => g.percentage >= 60 && g.percentage <= 80).length
+      const high = distGrades.filter((g: any) => g.percentage > 80).length
 
       performanceTrends.gradeDistribution = [
         { name: '< 60%', value: low, color: '#ef4444' },
@@ -394,4 +464,5 @@ export async function getAdminDashboardData() {
       tags: ['admin-dashboard', 'grades', 'students', 'terms'] // Tags for manual revalidation
     }
   )()
+  }, { route: '/admin/dashboard', cache: 'enabled' })
 }

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now()
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -64,6 +65,13 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/teacher/dashboard'
       return NextResponse.redirect(url)
     }
+  }
+
+  // Log middleware performance
+  const endTime = typeof performance !== 'undefined' ? performance.now() : Date.now()
+  const duration = endTime - startTime
+  if (duration > 50) {
+    console.log(`⚠️ [PERF] Middleware: ${path} - ${duration.toFixed(2)}ms`)
   }
 
   return supabaseResponse

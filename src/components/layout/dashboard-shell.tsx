@@ -5,6 +5,7 @@ import { SidebarProvider, useSidebar } from './sidebar-context'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
+import { useDialogOpen } from '@/hooks/use-dialog-open'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -13,6 +14,7 @@ interface DashboardShellProps {
 
 function DashboardContent({ children, sidebar }: DashboardShellProps) {
   const { isOpen, setIsOpen, toggle } = useSidebar()
+  const isDialogOpen = useDialogOpen()
 
   return (
     <div className="flex min-h-screen w-full bg-gray-50">
@@ -55,6 +57,7 @@ function DashboardContent({ children, sidebar }: DashboardShellProps) {
           'flex-1 min-h-screen transition-all duration-300 w-full',
           'md:ml-20'
         )}
+        {...(isDialogOpen && { inert: true })}
       >
         {children}
       </main>

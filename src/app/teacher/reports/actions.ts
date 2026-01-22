@@ -2,6 +2,8 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
+import { unstable_cache } from 'next/cache'
+import { measureAsync } from '@/lib/performance'
 
 export interface ReportFilters {
   term_id?: string
@@ -19,8 +21,14 @@ export async function getPerformanceReport(filters: ReportFilters) {
   } = await supabaseAuth.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const supabase = createAdminClient()
-  const termId = filters.term_id
+  const userId = user.id
+  const cacheKey = `performance-report-${userId}-${JSON.stringify(filters)}`
+
+  return unstable_cache(
+    async () => {
+      return measureAsync('Performance Report Data Fetch', async () => {
+        const supabase = createAdminClient()
+        const termId = filters.term_id
 
   // Get teacher's classes
   let classQuery = supabase
@@ -34,46 +42,62 @@ export async function getPerformanceReport(filters: ReportFilters) {
 
   const { data: classes } = await classQuery
 
-  const classPerformance = await Promise.all(
-    (classes || []).map(async (cls: any) => {
-      let gradesQuery = supabase
-        .from('grades')
-        .select('percentage, is_low_point, student_id')
-        .eq('class_id', cls.id)
-        .eq('entered_by', user.id)
-
-      if (termId) {
-        gradesQuery = gradesQuery.eq('term_id', termId)
-      }
-
-      const { data: grades } = await gradesQuery
-
-      const avg =
-        grades && grades.length > 0
-          ? grades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / grades.length
-          : 0
-
-      const lpCount = grades?.filter((g: any) => g.is_low_point).length || 0
-
-      return {
-        id: cls.id,
-        name: cls.name,
-        avgPercentage: Math.round(avg),
-        lpCount,
-        gradeCount: grades?.length || 0,
-      }
-    }),
-  )
-
-  return {
-    data: classPerformance,
-    summary: {
-      totalClasses: classPerformance.length,
-      overallAvg: classPerformance.length > 0
-        ? Math.round(classPerformance.reduce((acc, c) => acc + c.avgPercentage, 0) / classPerformance.length)
-        : 0,
-    },
+  if (!classes || classes.length === 0) {
+    return { data: [], summary: { totalClasses: 0, overallAvg: 0 } }
   }
+
+  const classIds = classes.map(c => c.id)
+
+  // Single query to get all grades for all classes at once (fixes N+1 problem)
+  let gradesQuery = supabase
+    .from('grades')
+    .select('class_id, percentage, is_low_point, student_id')
+    .in('class_id', classIds)
+    .eq('entered_by', user.id)
+
+  if (termId) {
+    gradesQuery = gradesQuery.eq('term_id', termId)
+  }
+
+  const { data: allGrades } = await gradesQuery
+
+  // Aggregate by class in memory (much faster than N queries)
+  const classPerformance = classes.map((cls: any) => {
+    const classGrades = allGrades?.filter((g: any) => g.class_id === cls.id) || []
+    
+    const avg =
+      classGrades.length > 0
+        ? classGrades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / classGrades.length
+        : 0
+
+    const lpCount = classGrades.filter((g: any) => g.is_low_point).length || 0
+
+    return {
+      id: cls.id,
+      name: cls.name,
+      avgPercentage: Math.round(avg),
+      lpCount,
+      gradeCount: classGrades.length,
+    }
+  })
+
+        return {
+          data: classPerformance,
+          summary: {
+            totalClasses: classPerformance.length,
+            overallAvg: classPerformance.length > 0
+              ? Math.round(classPerformance.reduce((acc, c) => acc + c.avgPercentage, 0) / classPerformance.length)
+              : 0,
+          },
+        }
+      }, { route: '/teacher/reports', cache: 'enabled' })
+    },
+    [cacheKey],
+    {
+      revalidate: 60, // 1 minute cache
+      tags: ['performance-report', `teacher-${userId}`]
+    }
+  )()
 }
 
 export async function getGradeReport(filters: ReportFilters) {
@@ -233,21 +257,34 @@ export async function getReportFiltersData() {
   } = await supabaseAuth.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const supabase = createAdminClient()
+  const userId = user.id
 
-  const { data: terms } = await supabase
-    .from('terms')
-    .select('id, name, is_active')
-    .order('start_date', { ascending: false })
+  // Cache filters data per teacher - terms and classes change infrequently
+  return unstable_cache(
+    async () => {
+      const supabase = createAdminClient()
 
-  const { data: classes } = await supabase
-    .from('classes')
-    .select('id, name')
-    .eq('teacher_id', user.id)
-    .order('name', { ascending: true })
+      const [termsRes, classesRes] = await Promise.all([
+        supabase
+          .from('terms')
+          .select('id, name, is_active')
+          .order('start_date', { ascending: false }),
+        supabase
+          .from('classes')
+          .select('id, name')
+          .eq('teacher_id', userId)
+          .order('name', { ascending: true })
+      ])
 
-  return {
-    terms: terms || [],
-    classes: classes || [],
-  }
+      return {
+        terms: termsRes.data || [],
+        classes: classesRes.data || [],
+      }
+    },
+    [`report-filters-${userId}`],
+    {
+      revalidate: 300, // 5 minutes - terms and classes change rarely
+      tags: ['report-filters', `teacher-${userId}`, 'terms', 'classes']
+    }
+  )()
 }

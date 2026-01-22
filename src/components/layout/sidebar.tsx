@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { logout } from '@/app/auth/actions'
 import { useSidebar } from './sidebar-context'
+import { useDialogOpen } from '@/hooks/use-dialog-open'
 
 interface SidebarProps {
   role: 'admin' | 'teacher'
@@ -39,6 +40,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
   const searchParams = useSearchParams()
   const currentStatus = searchParams.get('status')
   const { setIsOpen } = useSidebar()
+  const isDialogOpen = useDialogOpen()
 
   const adminItems = [
     { href: '/admin/dashboard', icon: Home, label: 'Dashboard' },
@@ -69,7 +71,10 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
   }
 
   return (
-    <aside className="h-screen w-20 md:w-20 bg-blue-900 flex flex-col z-50 border-r border-blue-800 overflow-hidden">
+    <aside 
+      className="h-screen w-20 md:w-20 bg-blue-900 flex flex-col z-50 border-r border-blue-800 overflow-hidden"
+      {...(isDialogOpen && { inert: true })}
+    >
       {/* Logo Section */}
       <div className="h-20 flex items-center justify-between px-2 border-b border-blue-800 shrink-0">
         <div className="flex items-center justify-center p-2 flex-1">
