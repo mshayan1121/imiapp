@@ -195,21 +195,44 @@ export async function getAdminDashboardData() {
   }
 
   // 6. Class Performance Breakdown - Optimized to avoid N+1 queries
-  const { data: allClassesRaw } = await supabase
+  const { data: allClassesRaw, error: classesError } = await supabase
     .from('classes')
     .select(`
       id,
       name,
-      profiles:teacher_id (full_name)
+      teacher_id
     `)
     .limit(50)
 
-  const allClasses = (allClassesRaw || []).map((cls: any) => ({
+  if (classesError) {
+    logger.error('Error fetching classes for performance breakdown', { error: classesError })
+  }
+
+  const allClasses = allClassesRaw || []
+
+  // Fetch teacher profiles separately to avoid RLS issues
+  const teacherIds = Array.from(new Set(
+    allClasses.map((cls: any) => cls.teacher_id).filter(Boolean)
+  )) as string[]
+
+  const { data: teacherProfiles } = teacherIds.length > 0
+    ? await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', teacherIds)
+    : { data: null }
+
+  const teacherMap = new Map(
+    (teacherProfiles || []).map((t: any) => [t.id, t])
+  )
+
+  // Map classes with teacher info
+  const allClassesWithTeachers = allClasses.map((cls: any) => ({
     ...cls,
-    profiles: Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles,
+    profiles: cls.teacher_id ? teacherMap.get(cls.teacher_id) : null,
   }))
 
-  const classIds = allClasses.map((cls) => cls.id)
+  const classIds = allClassesWithTeachers.map((cls) => cls.id)
 
   // Fetch all data in parallel instead of N+1 queries
   const classStudentCountPromises = classIds.map((classId) =>
@@ -219,21 +242,29 @@ export async function getAdminDashboardData() {
       .eq('class_id', classId)
   )
 
+  // Fetch grades for active term if available
+  let allClassGrades: any[] = []
+  if (activeTerm && classIds.length > 0) {
+    const { data: gradesData, error: gradesError } = await supabase
+      .from('grades')
+      .select('class_id, percentage, is_low_point, student_id')
+      .in('class_id', classIds)
+      .eq('term_id', activeTerm.id)
+      .limit(2000) // Limit total grades fetched
+
+    if (gradesError) {
+      logger.error('Error fetching grades for class performance', { error: gradesError })
+    } else {
+      allClassGrades = gradesData || []
+    }
+  }
+
   const allClassDataPromises = [
     ...classStudentCountPromises,
-    activeTerm && classIds.length > 0
-      ? supabase
-          .from('grades')
-          .select('class_id, percentage, is_low_point, student_id')
-          .in('class_id', classIds)
-          .eq('term_id', activeTerm.id)
-          .limit(2000) // Limit total grades fetched
-      : Promise.resolve({ data: [] }),
   ]
 
   const allClassDataResults = await Promise.all(allClassDataPromises)
-  const classStudentCounts = allClassDataResults.slice(0, -1) as Array<{ count: number | null }>
-  const { data: allClassGrades } = allClassDataResults[allClassDataResults.length - 1] as { data: any[] }
+  const classStudentCounts = allClassDataResults as Array<{ count: number | null }>
 
   // Group grades by class
   const gradesByClass = (allClassGrades || []).reduce((acc: Record<string, any[]>, g: any) => {
@@ -244,46 +275,45 @@ export async function getAdminDashboardData() {
     return acc
   }, {} as Record<string, any[]>)
 
-  const classPerformance = activeTerm
-    ? allClasses.map((cls, index) => {
-        const grades = gradesByClass[cls.id] || []
+  // Always show classes, even if there's no active term or no grades
+  const classPerformance = allClassesWithTeachers.map((cls, index) => {
+    const grades = gradesByClass[cls.id] || []
 
-        const avg =
-          grades.length > 0
-            ? grades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / grades.length
-            : 0
+    const avg =
+      grades.length > 0
+        ? grades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / grades.length
+        : 0
 
-        const lpCount = grades.filter((g: any) => g.is_low_point).length
+    const lpCount = grades.filter((g: any) => g.is_low_point).length
 
-        // Calculate flags for this class
-        const classStudentLps: Record<string, number> = {}
-        grades.forEach((g: any) => {
-          if (g.is_low_point) {
-            classStudentLps[g.student_id] = (classStudentLps[g.student_id] || 0) + 1
-          }
-        })
+    // Calculate flags for this class
+    const classStudentLps: Record<string, number> = {}
+    grades.forEach((g: any) => {
+      if (g.is_low_point) {
+        classStudentLps[g.student_id] = (classStudentLps[g.student_id] || 0) + 1
+      }
+    })
 
-        let classFlagCount = 0
-        Object.values(classStudentLps).forEach((count) => {
-          if (count >= 5) classFlagCount += 3
-          else if (count === 4) classFlagCount += 2
-          else if (count === 3) classFlagCount += 1
-        })
+    let classFlagCount = 0
+    Object.values(classStudentLps).forEach((count) => {
+      if (count >= 5) classFlagCount += 3
+      else if (count === 4) classFlagCount += 2
+      else if (count === 3) classFlagCount += 1
+    })
 
-        const profile = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
+    const profile = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
 
-        return {
-          id: cls.id,
-          name: cls.name,
-          teacher: profile?.full_name || 'Unassigned',
-          studentCount: classStudentCounts[index]?.count || 0,
-          gradesEntered: grades.length,
-          avgPercentage: Math.round(avg),
-          lpCount,
-          flagCount: classFlagCount,
-        }
-      })
-    : []
+    return {
+      id: cls.id,
+      name: cls.name,
+      teacher: profile?.full_name || 'Unassigned',
+      studentCount: classStudentCounts[index]?.count || 0,
+      gradesEntered: grades.length,
+      avgPercentage: Math.round(avg),
+      lpCount,
+      flagCount: classFlagCount,
+    }
+  })
 
   // 7. Teacher Activity Summary - Optimized to avoid N+1 queries
   const { data: teachers } = await supabase
@@ -292,10 +322,10 @@ export async function getAdminDashboardData() {
     .eq('role', 'teacher')
     .limit(50)
 
-  const teacherIds = (teachers || []).map((t) => t.id)
+  const allTeacherIds = (teachers || []).map((t) => t.id)
 
   // Fetch all teacher data in parallel
-  const teacherClassCountPromises = teacherIds.map((teacherId) =>
+  const teacherClassCountPromises = allTeacherIds.map((teacherId) =>
     supabase
       .from('classes')
       .select('id', { count: 'exact', head: true })
@@ -304,11 +334,11 @@ export async function getAdminDashboardData() {
 
   const allTeacherDataPromises = [
     ...teacherClassCountPromises,
-    activeTerm && teacherIds.length > 0
+    activeTerm && allTeacherIds.length > 0
       ? supabase
           .from('grades')
           .select('entered_by, created_at')
-          .in('entered_by', teacherIds)
+          .in('entered_by', allTeacherIds)
           .eq('term_id', activeTerm.id)
           .order('created_at', { ascending: false })
           .limit(500) // Limit to recent grades only
