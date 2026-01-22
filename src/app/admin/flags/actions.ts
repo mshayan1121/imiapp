@@ -27,11 +27,14 @@ export async function getFlaggedStudents(termId: string) {
 
   // Get contact status for these students
   const studentIds = flaggedStudents.map((s) => s.student_id)
-  const { data: contacts } = await supabase
-    .from('parent_contacts')
-    .select('*')
-    .eq('term_id', termId)
-    .in('student_id', studentIds)
+  const { data: contacts } = studentIds.length > 0
+    ? await supabase
+        .from('parent_contacts')
+        .select('id, student_id, term_id, contact_type, status, contacted_at, updated_at, notes')
+        .eq('term_id', termId)
+        .in('student_id', studentIds)
+        .limit(500)
+    : { data: [] }
 
   return flaggedStudents.map((s) => ({
     ...s,

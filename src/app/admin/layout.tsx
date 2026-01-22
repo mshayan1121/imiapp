@@ -12,7 +12,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) return null
 
   // Fetch profile for additional details
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, full_name, role, email')
+    .eq('id', user.id)
+    .single()
 
   const fullName = profile?.full_name || 'Admin User'
   const initials = fullName

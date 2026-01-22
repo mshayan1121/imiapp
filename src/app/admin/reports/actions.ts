@@ -17,7 +17,7 @@ export async function getPerformanceReport(filters: ReportFilters) {
 
   const { data: activeTerm } = await supabase
     .from('terms')
-    .select('*')
+    .select('id, name, is_active, start_date, end_date')
     .eq('is_active', true)
     .single()
 
@@ -35,7 +35,7 @@ export async function getPerformanceReport(filters: ReportFilters) {
     classQuery = classQuery.eq('id', filters.class_id)
   }
 
-  const { data: classes } = await classQuery
+  const { data: classes } = await classQuery.limit(50)
 
   if (!classes || classes.length === 0) {
     return { data: [], summary: { totalClasses: 0, overallAvg: 0 } }
@@ -101,7 +101,21 @@ export async function getGradeReport(filters: ReportFilters) {
     .from('grades')
     .select(
       `
-      *,
+      id,
+      assessed_date,
+      marks_obtained,
+      total_marks,
+      percentage,
+      is_low_point,
+      work_type,
+      term_id,
+      class_id,
+      course_id,
+      student_id,
+      topic_id,
+      subtopic_id,
+      entered_by,
+      created_at,
       students (id, name),
       classes (id, name),
       courses (id, name),
@@ -111,6 +125,7 @@ export async function getGradeReport(filters: ReportFilters) {
       { count: 'exact' },
     )
     .order('assessed_date', { ascending: false })
+    .limit(50)
 
   if (filters.term_id) query = query.eq('term_id', filters.term_id)
   if (filters.class_id) query = query.eq('class_id', filters.class_id)
@@ -155,11 +170,14 @@ export async function getFlagReport(termId: string) {
     .filter((s: any) => s.flag_count >= 1)
 
   const studentIds = flaggedStudents.map((s: any) => s.student_id)
-  const { data: contacts } = await supabase
-    .from('parent_contacts')
-    .select('*')
-    .eq('term_id', termId)
-    .in('student_id', studentIds)
+  const { data: contacts } = studentIds.length > 0
+    ? await supabase
+        .from('parent_contacts')
+        .select('id, student_id, term_id, contact_type, status, contacted_at, updated_at, notes')
+        .eq('term_id', termId)
+        .in('student_id', studentIds)
+        .limit(500)
+    : { data: [] }
 
   return flaggedStudents.map((s: any) => ({
     ...s,
@@ -172,25 +190,29 @@ export async function getSummaryReport(dateRange?: { start: string; end: string 
 
   const { data: activeTerm } = await supabase
     .from('terms')
-    .select('*')
+    .select('id, name, is_active, start_date, end_date')
     .eq('is_active', true)
     .single()
 
-  // Get counts
-  const { count: totalStudents } = await supabase
-    .from('students')
-    .select('*', { count: 'exact', head: true })
+  // Get counts (parallelized)
+  const [
+    { count: totalStudents },
+    { count: totalTeachers },
+    { count: totalClasses },
+  ] = await Promise.all([
+    supabase
+      .from('students')
+      .select('id', { count: 'exact', head: true }),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'teacher'),
+    supabase
+      .from('classes')
+      .select('id', { count: 'exact', head: true }),
+  ])
 
-  const { count: totalTeachers } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('role', 'teacher')
-
-  const { count: totalClasses } = await supabase
-    .from('classes')
-    .select('*', { count: 'exact', head: true })
-
-  let gradeQuery = supabase.from('grades').select('*', { count: 'exact', head: true })
+  let gradeQuery = supabase.from('grades').select('id', { count: 'exact', head: true })
   if (dateRange?.start) gradeQuery = gradeQuery.gte('assessed_date', dateRange.start)
   if (dateRange?.end) gradeQuery = gradeQuery.lte('assessed_date', dateRange.end)
   if (activeTerm) gradeQuery = gradeQuery.eq('term_id', activeTerm.id)
@@ -209,20 +231,27 @@ export async function getSummaryReport(dateRange?: { start: string; end: string 
 export async function getReportFiltersData() {
   const supabase = createAdminClient()
 
-  const { data: terms } = await supabase
-    .from('terms')
-    .select('id, name, is_active')
-    .order('start_date', { ascending: false })
-
-  const { data: classes } = await supabase
-    .from('classes')
-    .select('id, name')
-    .order('name', { ascending: true })
-
-  const { data: courses } = await supabase
-    .from('courses')
-    .select('id, name')
-    .order('name', { ascending: true })
+  const [
+    { data: terms },
+    { data: classes },
+    { data: courses },
+  ] = await Promise.all([
+    supabase
+      .from('terms')
+      .select('id, name, is_active')
+      .order('start_date', { ascending: false })
+      .limit(50),
+    supabase
+      .from('classes')
+      .select('id, name')
+      .order('name', { ascending: true })
+      .limit(50),
+    supabase
+      .from('courses')
+      .select('id, name')
+      .order('name', { ascending: true })
+      .limit(50),
+  ])
 
   return {
     terms: terms || [],

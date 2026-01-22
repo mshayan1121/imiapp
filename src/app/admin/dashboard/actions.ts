@@ -22,37 +22,40 @@ export async function getAdminDashboardData() {
       const { createAdminClient } = await import('@/utils/supabase/admin')
       const supabase = createAdminClient()
 
-      // 1. Get Active Term
-      const { data: activeTerm } = await supabase
-        .from('terms')
-        .select('*')
-        .eq('is_active', true)
-        .single()
+      // 1. Get Active Term and System Overview Stats (parallelized)
+      const [
+        { data: activeTerm },
+        { count: totalStudents },
+        { count: totalTeachers },
+        { count: totalClasses },
+        { count: totalCourses },
+      ] = await Promise.all([
+        supabase
+          .from('terms')
+          .select('id, name, is_active, start_date, end_date')
+          .eq('is_active', true)
+          .single(),
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'teacher'),
+        supabase
+          .from('classes')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('courses')
+          .select('id', { count: 'exact', head: true }),
+      ])
 
-  // 2. System Overview Stats
-  const { count: totalStudents } = await supabase
-    .from('students')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: totalTeachers } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('role', 'teacher')
-
-  const { count: totalClasses } = await supabase
-    .from('classes')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: totalCourses } = await supabase
-    .from('courses')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: totalGrades } = activeTerm
-    ? await supabase
-        .from('grades')
-        .select('*', { count: 'exact', head: true })
-        .eq('term_id', activeTerm.id)
-    : { count: 0 }
+      const { count: totalGrades } = activeTerm
+        ? await supabase
+            .from('grades')
+            .select('id', { count: 'exact', head: true })
+            .eq('term_id', activeTerm.id)
+        : { count: 0 }
 
   // 3. Flagged Students Institute-Wide
   let flaggedCount = 0
@@ -184,11 +187,14 @@ export async function getAdminDashboardData() {
   }
 
   // 6. Class Performance Breakdown
-  const { data: allClassesRaw } = await supabase.from('classes').select(`
+  const { data: allClassesRaw } = await supabase
+    .from('classes')
+    .select(`
       id,
       name,
       profiles:teacher_id (full_name)
     `)
+    .limit(50)
 
   const allClasses = (allClassesRaw || []).map((cls: any) => ({
     ...cls,
@@ -200,7 +206,7 @@ export async function getAdminDashboardData() {
         (allClasses || []).map(async (cls) => {
           const { count: studentCount } = await supabase
             .from('class_students')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('class_id', cls.id)
 
           const { data: grades } = await supabase
@@ -248,14 +254,18 @@ export async function getAdminDashboardData() {
     : []
 
   // 7. Teacher Activity Summary
-  const { data: teachers } = await supabase.from('profiles').select('*').eq('role', 'teacher')
+  const { data: teachers } = await supabase
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('role', 'teacher')
+    .limit(50)
 
   const teacherSummary = activeTerm
     ? await Promise.all(
         (teachers || []).map(async (t) => {
           const { count: classCount } = await supabase
             .from('classes')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('teacher_id', t.id)
 
           const { data: teacherGrades } = await supabase
@@ -290,6 +300,7 @@ export async function getAdminDashboardData() {
       .from('terms')
       .select('id, name')
       .order('start_date', { ascending: true })
+      .limit(50)
     
     if (allTerms) {
       performanceTrends.performanceData = await Promise.all(allTerms.map(async (term) => {

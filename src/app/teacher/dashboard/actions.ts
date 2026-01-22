@@ -25,48 +25,60 @@ export async function getDashboardData() {
       // Use the userId captured outside the cache
       const cachedUser = { id: userId }
 
-      // 1. Get Active Term
-      let { data: activeTerm, error: activeTermError } = await supabase
-        .from('terms')
-        .select('*')
-        .eq('is_active', true)
-        .single()
+      // 1. Get Active Term, Teacher Profile, and Classes Count (parallelized)
+      const [
+        { data: activeTerm, error: activeTermError },
+        { data: profile },
+        { count: classesCount },
+        { data: teacherClassesForIds },
+      ] = await Promise.all([
+        supabase
+          .from('terms')
+          .select('id, name, is_active, start_date, end_date')
+          .eq('is_active', true)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .eq('id', cachedUser.id)
+          .single(),
+        supabase
+          .from('classes')
+          .select('id', { count: 'exact', head: true })
+          .eq('teacher_id', cachedUser.id),
+        supabase
+          .from('classes')
+          .select('id')
+          .eq('teacher_id', cachedUser.id)
+          .limit(50),
+      ])
 
+      let finalActiveTerm = activeTerm
       if (activeTermError || !activeTerm) {
         console.warn('No active term found, falling back to most recent term')
         const { data: latestTerm } = await supabase
           .from('terms')
-          .select('*')
+          .select('id, name, is_active, start_date, end_date')
           .order('end_date', { ascending: false })
           .limit(1)
           .single()
 
-        activeTerm = latestTerm
+        finalActiveTerm = latestTerm
       }
 
-      if (!activeTerm) {
+      if (!finalActiveTerm) {
         return { noTerms: true } as any
       }
 
-      // 2. Get Teacher Profile
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', cachedUser.id).single()
-
-      // 3. Count Classes
-      const { count: classesCount } = await supabase
-        .from('classes')
-        .select('*', { count: 'exact', head: true })
-        .eq('teacher_id', cachedUser.id)
-
       // 4. Count Students (unique across all teacher's classes)
-      const { data: studentIds } = await supabase
-        .from('class_students')
-        .select('student_id')
-        .in(
-          'class_id',
-          (await supabase.from('classes').select('id').eq('teacher_id', cachedUser.id)).data?.map(
-            (c) => c.id,
-          ) || [],
-        )
+      const classIds = teacherClassesForIds?.map((c) => c.id) || []
+      const { data: studentIds } = classIds.length > 0
+        ? await supabase
+            .from('class_students')
+            .select('student_id')
+            .in('class_id', classIds)
+            .limit(500) // Reasonable limit for student IDs
+        : { data: [] }
 
       const uniqueStudentIds = Array.from(new Set(studentIds?.map((s) => s.student_id) || []))
       const studentsCount = uniqueStudentIds.length
@@ -74,26 +86,24 @@ export async function getDashboardData() {
       // 5. Count Grades Entered in Active Term
       const { count: gradesCount } = await supabase
         .from('grades')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('entered_by', cachedUser.id)
-        .eq('term_id', activeTerm.id)
+        .eq('term_id', finalActiveTerm.id)
 
       // 6. Flagged Students
       // We need to calculate flags for students in teacher's classes
       // A student is flagged if they have 3+ LP in the active term
       // 3 LP = 1 Flag, 4 LP = 2 Flags, 5+ LP = 3 Flags
 
-      const { data: lpData } = await supabase
-        .from('grades')
-        .select('student_id')
-        .eq('term_id', activeTerm.id)
-        .eq('is_low_point', true)
-        .in(
-          'class_id',
-          (await supabase.from('classes').select('id').eq('teacher_id', cachedUser.id)).data?.map(
-            (c) => c.id,
-          ) || [],
-        )
+      const { data: lpData } = classIds.length > 0
+        ? await supabase
+            .from('grades')
+            .select('student_id')
+            .eq('term_id', finalActiveTerm.id)
+            .eq('is_low_point', true)
+            .in('class_id', classIds)
+            .limit(500) // Reasonable limit for LP data
+        : { data: [] }
 
       const studentLpCounts: Record<string, number> = {}
       lpData?.forEach((g) => {
@@ -142,20 +152,16 @@ export async function getDashboardData() {
       // 8. Class Performance
       const { data: teacherClasses } = await supabase
         .from('classes')
-        .select(
-          `
-          id,
-          name
-        `,
-        )
+        .select('id, name')
         .eq('teacher_id', cachedUser.id)
+        .limit(50)
 
       const classPerformance = await Promise.all(
         (teacherClasses || []).map(async (cls) => {
           // Student count in this class
           const { count: studentCount } = await supabase
             .from('class_students')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('class_id', cls.id)
 
           // Average percentage in this class for active term
@@ -163,7 +169,8 @@ export async function getDashboardData() {
             .from('grades')
             .select('percentage, is_low_point')
             .eq('class_id', cls.id)
-            .eq('term_id', activeTerm.id)
+            .eq('term_id', finalActiveTerm.id)
+            .limit(500) // Reasonable limit for grades per class
 
           const avgPercentage =
             grades && grades.length > 0
@@ -195,7 +202,7 @@ export async function getDashboardData() {
 
       return {
         teacherName: profile?.full_name || 'Teacher',
-        activeTerm,
+        activeTerm: finalActiveTerm,
         stats: {
           classesCount: classesCount || 0,
           studentsCount,

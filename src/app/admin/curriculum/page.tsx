@@ -14,22 +14,28 @@ export default async function ManageCurriculumPage() {
     { data: subtopics },
     { data: coursesData },
   ] = await Promise.all([
-    supabase.from('qualifications').select('*').order('name'),
-    supabase.from('boards').select('*').order('name'),
-    supabase.from('subjects').select('*').order('name'),
-    supabase.from('topics').select('*').order('name'),
-    supabase.from('subtopics').select('*').order('name'),
+    supabase.from('qualifications').select('id, name').order('name').limit(50),
+    supabase.from('boards').select('id, name').order('name').limit(50),
+    supabase.from('subjects').select('id, name, board_id').order('name').limit(50),
+    supabase.from('topics').select('id, name, subject_id').order('name').limit(50),
+    supabase.from('subtopics').select('id, name, topic_id').order('name').limit(50),
     supabase
       .from('courses')
       .select(
         `
-      *,
+      id,
+      name,
+      qualification_id,
+      board_id,
+      subject_id,
+      created_at,
       qualification:qualifications(name),
       board:boards(name),
       subject:subjects(name)
     `,
       )
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   const courses = (coursesData || []).map((c: any) => ({

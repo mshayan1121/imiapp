@@ -9,7 +9,7 @@ export async function getStudentProfileData(studentId: string) {
   // Get active term first
   const { data: activeTerm } = await supabase
     .from('terms')
-    .select('*')
+    .select('id, name, is_active, start_date, end_date')
     .eq('is_active', true)
     .single()
 
@@ -18,7 +18,7 @@ export async function getStudentProfileData(studentId: string) {
   // 1. Student basic info
   const { data: student, error: studentError } = await supabase
     .from('students')
-    .select('*')
+    .select('id, name, year_group, school, created_at')
     .eq('id', studentId)
     .single()
 
@@ -100,8 +100,9 @@ export async function getStudentProfileData(studentId: string) {
   // 4. Contact information
   const { data: contacts, error: contactsError } = await supabase
     .from('student_contacts')
-    .select('*')
+    .select('id, student_id, parent_name, parent_email, parent_phone, address, created_at, updated_at')
     .eq('student_id', studentId)
+    .limit(1)
 
   if (contactsError) throw contactsError
 

@@ -11,7 +11,7 @@ export async function getActiveTerm() {
       const supabase = await createClient()
       const { data } = await supabase
         .from('terms')
-        .select('*')
+        .select('id, name, is_active, start_date, end_date')
         .eq('is_active', true)
         .single()
       return data

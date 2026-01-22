@@ -89,7 +89,21 @@ export async function getGradeReport(filters: ReportFilters) {
     .from('grades')
     .select(
       `
-      *,
+      id,
+      assessed_date,
+      marks_obtained,
+      total_marks,
+      percentage,
+      is_low_point,
+      work_type,
+      term_id,
+      class_id,
+      course_id,
+      student_id,
+      topic_id,
+      subtopic_id,
+      entered_by,
+      created_at,
       students (id, name),
       classes (id, name),
       courses (id, name),
@@ -100,6 +114,7 @@ export async function getGradeReport(filters: ReportFilters) {
     )
     .eq('entered_by', user.id)
     .order('assessed_date', { ascending: false })
+    .limit(50)
 
   if (filters.term_id) query = query.eq('term_id', filters.term_id)
   if (filters.class_id) query = query.eq('class_id', filters.class_id)
@@ -154,11 +169,14 @@ export async function getFlagReport(termId: string) {
     .filter((s: any) => s.flag_count >= 1)
 
   const studentIds = flaggedStudents.map((s: any) => s.student_id)
-  const { data: contacts } = await supabase
-    .from('parent_contacts')
-    .select('*')
-    .eq('term_id', termId)
-    .in('student_id', studentIds)
+  const { data: contacts } = studentIds.length > 0
+    ? await supabase
+        .from('parent_contacts')
+        .select('id, student_id, term_id, contact_type, status, contacted_at, updated_at, notes')
+        .eq('term_id', termId)
+        .in('student_id', studentIds)
+        .limit(500)
+    : { data: [] }
 
   return flaggedStudents.map((s: any) => ({
     ...s,
@@ -177,12 +195,12 @@ export async function getSummaryReport(dateRange?: { start: string; end: string 
 
   const { count: classesCount } = await supabase
     .from('classes')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('teacher_id', user.id)
 
   let gradeQuery = supabase
     .from('grades')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('entered_by', user.id)
 
   if (dateRange?.start) gradeQuery = gradeQuery.gte('assessed_date', dateRange.start)

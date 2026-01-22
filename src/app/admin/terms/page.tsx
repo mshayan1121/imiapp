@@ -20,8 +20,9 @@ export default async function TermsPage() {
   // Fetch terms
   const { data: terms, error } = await supabase
     .from('terms')
-    .select('*')
+    .select('id, name, start_date, end_date, is_active, created_at')
     .order('start_date', { ascending: false })
+    .limit(50)
 
   if (error) {
     console.error('Error fetching terms:', error)

@@ -209,7 +209,7 @@ export async function getClassDetails(classId: string) {
 
   const { data: classData, error: classError } = await supabase
     .from('classes')
-    .select('*')
+    .select('id, name, teacher_id, created_at')
     .eq('id', classId)
     .single()
 

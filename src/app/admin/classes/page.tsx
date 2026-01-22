@@ -19,14 +19,16 @@ async function ClassesContentLoader() {
   ] = await Promise.all([
     supabase
       .from('classes')
-      .select('*, class_students(count)')
-      .order('created_at', { ascending: false }),
-    supabase.from('profiles').select('*'),
-    supabase.from('students').select('*').order('name'),
+      .select('id, name, teacher_id, created_at, class_students(count)')
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase.from('profiles').select('id, full_name, role, email').limit(50),
+    supabase.from('students').select('id, name, year_group, school').order('name').limit(50),
     supabase
       .from('courses')
-      .select('*, qualification:qualifications(name), board:boards(name), subject:subjects(name)')
-      .order('name'),
+      .select('id, name, qualification_id, board_id, subject_id, qualification:qualifications(name), board:boards(name), subject:subjects(name)')
+      .order('name')
+      .limit(50),
   ])
 
   if (classesError) {
@@ -57,12 +59,13 @@ async function ClassesContentLoader() {
 async function CreateDialogLoader() {
   const supabase = await createClient()
   const [{ data: profiles }, { data: students }, { data: coursesData }] = await Promise.all([
-    supabase.from('profiles').select('*'),
-    supabase.from('students').select('*').order('name'),
+    supabase.from('profiles').select('id, full_name, role, email').limit(50),
+    supabase.from('students').select('id, name, year_group, school').order('name').limit(50),
     supabase
       .from('courses')
-      .select('*, qualification:qualifications(name), board:boards(name), subject:subjects(name)')
-      .order('name'),
+      .select('id, name, qualification_id, board_id, subject_id, qualification:qualifications(name), board:boards(name), subject:subjects(name)')
+      .order('name')
+      .limit(50),
   ])
 
   const courses = (coursesData || []).map((c: any) => ({
