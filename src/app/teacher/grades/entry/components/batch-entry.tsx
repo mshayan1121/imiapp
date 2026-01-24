@@ -55,7 +55,7 @@ const batchSchema = z.object({
   topic_id: z.string().min(1, 'Topic is required'),
   subtopic_id: z.string().min(1, 'Subtopic is required'),
   total_marks: z.number().min(1, 'Total marks must be at least 1'),
-  is_retake: z.boolean().optional().default(false),
+  is_retake: z.boolean(),
 })
 
 type BatchFormValues = z.infer<typeof batchSchema>

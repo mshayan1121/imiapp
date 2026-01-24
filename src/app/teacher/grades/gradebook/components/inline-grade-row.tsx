@@ -360,13 +360,19 @@ export function InlineGradeRow({
         >
           {percentage !== null ? `${percentage}%` : '-'}
           {percentage !== null && trend === 'up' && (
-            <TrendingUp className="h-3 w-3 text-green-600" title="Improved from last attempt" />
+            <span title="Improved from last attempt">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+            </span>
           )}
           {percentage !== null && trend === 'down' && (
-            <TrendingDown className="h-3 w-3 text-red-600" title="Lower than last attempt" />
+            <span title="Lower than last attempt">
+              <TrendingDown className="h-3 w-3 text-red-600" />
+            </span>
           )}
           {percentage !== null && trend === 'same' && (
-            <Minus className="h-3 w-3 text-gray-500" title="Same as last attempt" />
+            <span title="Same as last attempt">
+              <Minus className="h-3 w-3 text-gray-500" />
+            </span>
           )}
         </span>
       </td>
