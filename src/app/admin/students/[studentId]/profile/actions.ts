@@ -128,7 +128,23 @@ export async function getStudentProfileData(studentId: string) {
     // 4. Contact information
     const { data: contacts, error: contactsError } = await supabase
       .from('student_contacts')
-      .select('id, student_id, parent_name, parent_email, parent_phone, address, created_at, updated_at')
+      .select(`
+        id,
+        student_id,
+        parent_name,
+        relationship,
+        email,
+        phone,
+        preferred_contact_method,
+        address,
+        city,
+        postal_code,
+        emergency_contact_name,
+        emergency_contact_phone,
+        emergency_contact_relationship,
+        created_at,
+        updated_at
+      `)
       .eq('student_id', studentId)
       .limit(1)
 

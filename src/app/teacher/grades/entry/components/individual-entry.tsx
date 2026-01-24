@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { Plus, Trash2, ChevronLeft, Save, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -31,20 +32,9 @@ import {
   getActiveTerm,
   submitGrades,
   checkExistingGrades,
-  deleteGrade,
 } from '../actions'
 import { LowPointBadge } from './lp-badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 interface EntryRow {
   id: string
@@ -59,6 +49,7 @@ interface EntryRow {
   assessed_date: Date
   topics: any[]
   subtopics: any[]
+  is_retake: boolean
 }
 
 export function IndividualEntry() {
@@ -70,15 +61,6 @@ export function IndividualEntry() {
   const [students, setStudents] = useState<any[]>([])
   const [activeTerm, setActiveTerm] = useState<any>(null)
   const [rows, setRows] = useState<EntryRow[]>([])
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [retakeDialogOpen, setRetakeDialogOpen] = useState(false)
-  const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([])
-  const [retakeData, setRetakeData] = useState<{
-    studentId: string
-    existingGrades: any[]
-    newGrade: any
-    rowIndex: number
-  } | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,6 +115,7 @@ export function IndividualEntry() {
       assessed_date: new Date(),
       topics: [],
       subtopics: [],
+      is_retake: false,
     }
     setRows([...rows, newRow])
   }
@@ -228,12 +211,11 @@ export function IndividualEntry() {
         percentage: Math.round(percentage * 100) / 100,
         is_low_point: percentage < 80,
         assessed_date: format(r.assessed_date, 'yyyy-MM-dd'),
-        attempt_number: 1,
+        is_retake: r.is_retake,
       }
     })
 
-    setPendingSubmissions(entries)
-    setConfirmDialogOpen(true)
+    processSubmission(entries)
   }
 
   const processSubmission = async (entries: any[]) => {
@@ -252,18 +234,33 @@ export function IndividualEntry() {
           subtopic_id: entry.subtopic_id,
         })
 
-        if (existing && existing.length > 0) {
-          setRetakeData({
-            studentId: entry.student_id,
-            existingGrades: existing,
-            newGrade: entry,
-            rowIndex: i,
+        if (entry.is_retake) {
+          if (!existing || existing.length === 0) {
+            toast.error('No existing grade found for retake. Uncheck retake to add a first attempt.')
+            setLoading(false)
+            return
+          }
+          const maxAttempt = Math.max(...existing.map((g) => g.attempt_number))
+          finalEntries.push({
+            ...entry,
+            attempt_number: maxAttempt + 1,
+            is_retake: true,
+            is_reassigned: false,
+            original_grade_id: existing[0]?.id || null,
           })
-          setRetakeDialogOpen(true)
-          setLoading(false)
-          return
         } else {
-          finalEntries.push(entry)
+          if (existing && existing.length > 0) {
+            toast.error('Existing grade found. Check retake to add another attempt.')
+            setLoading(false)
+            return
+          }
+          finalEntries.push({
+            ...entry,
+            attempt_number: 1,
+            is_retake: false,
+            is_reassigned: false,
+            original_grade_id: null,
+          })
         }
       }
 
@@ -274,40 +271,6 @@ export function IndividualEntry() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit grades')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRetakeOption = async (option: 'replace' | 'retake') => {
-    if (!retakeData) return
-    setLoading(true)
-    setRetakeDialogOpen(false)
-
-    try {
-      const { newGrade, existingGrades } = retakeData
-
-      if (option === 'replace') {
-        for (const g of existingGrades) {
-          await deleteGrade(g.id)
-        }
-        await submitGrades([{ ...newGrade, attempt_number: 1 }])
-      } else {
-        const maxAttempt = Math.max(...existingGrades.map((g) => g.attempt_number))
-        await submitGrades([{ ...newGrade, attempt_number: maxAttempt + 1 }])
-      }
-
-      const remaining = pendingSubmissions.slice(retakeData.rowIndex + 1)
-      setPendingSubmissions(remaining)
-
-      if (remaining.length > 0) {
-        await processSubmission(remaining)
-      } else {
-        toast.success('Grade entry completed')
-        window.location.reload()
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Action failed')
     } finally {
       setLoading(false)
     }
@@ -459,6 +422,20 @@ export function IndividualEntry() {
                     </div>
                   </div>
 
+                  {/* Retake */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Retake</label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={row.is_retake}
+                        onCheckedChange={(checked) =>
+                          updateRow(row.id, { is_retake: checked === true })
+                        }
+                      />
+                      <span className="text-sm text-gray-700">Mark as retake</span>
+                    </div>
+                  </div>
+
                   {/* Marks / Total */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -544,6 +521,7 @@ export function IndividualEntry() {
                 <TableHead className="w-[80px] text-center">Marks</TableHead>
                 <TableHead className="w-[80px] text-center">Total</TableHead>
                 <TableHead className="w-[140px]">Date</TableHead>
+                <TableHead className="w-[90px] text-center">Retake</TableHead>
                 <TableHead className="w-[120px] text-center">Status</TableHead>
                 <TableHead className="w-[50px] text-right">Actions</TableHead>
               </TableRow>
@@ -673,6 +651,14 @@ export function IndividualEntry() {
                         setDate={(date) => updateRow(row.id, { assessed_date: date || new Date() })}
                       />
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={row.is_retake}
+                        onCheckedChange={(checked) =>
+                          updateRow(row.id, { is_retake: checked === true })
+                        }
+                      />
+                    </TableCell>
                     <TableCell>
                       {row.marks_obtained !== '' && (
                         <div className="flex flex-col items-center gap-1">
@@ -715,91 +701,6 @@ export function IndividualEntry() {
         </Button>
       </CardFooter>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Review Individual Entries</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to save {rows.length} grade entries.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="max-h-[300px] overflow-y-auto my-4 border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Subtopic</TableHead>
-                  <TableHead>Score</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-xs">
-                      {students.find((s) => s.student_id === r.student_id)?.students.name}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {r.subtopics.find((s) => s.id === r.subtopic_id)?.name}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {r.marks_obtained} / {r.total_marks}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmDialogOpen(false)
-                processSubmission(pendingSubmissions)
-              }}
-            >
-              Confirm & Save
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Retake Dialog */}
-      <AlertDialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Existing Grade Found</AlertDialogTitle>
-            <AlertDialogDescription>
-              {students.find((s) => s.student_id === retakeData?.studentId)?.students.name} already
-              has a grade for this subtopic this term.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel
-              disabled={loading}
-              onClick={() => {
-                setRetakeDialogOpen(false)
-                if (!retakeData) return
-                const remaining = pendingSubmissions.slice(retakeData.rowIndex + 1)
-                setPendingSubmissions(remaining)
-                if (remaining.length > 0) processSubmission(remaining)
-              }}
-            >
-              Skip Student
-            </AlertDialogCancel>
-            <Button
-              variant="outline"
-              loading={loading}
-              onClick={() => handleRetakeOption('replace')}
-            >
-              Replace Old Grade
-            </Button>
-            <Button loading={loading} onClick={() => handleRetakeOption('retake')}>
-              Add as Retake
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   )
 }

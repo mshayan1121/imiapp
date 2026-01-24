@@ -15,7 +15,7 @@ export const gradeSchema = z
     course_id: uuidSchema,
     term_id: uuidSchema,
     topic_id: uuidSchema,
-    subtopic_id: uuidSchema,
+    subtopic_id: uuidSchema.nullable().optional(), // Can be null for topic-level grades
     work_type: z.enum(['classwork', 'homework']),
     work_subtype: z.enum(['worksheet', 'pastpaper']),
     marks_obtained: z.number().min(0),
@@ -23,6 +23,10 @@ export const gradeSchema = z
     percentage: z.number().min(0).max(100).optional(), // Calculated on server usually, but can be passed
     is_low_point: z.boolean().optional(),
     attempt_number: z.number().int().min(1).optional().default(1),
+    is_retake: z.boolean().optional(),
+    is_reassigned: z.boolean().optional(),
+    original_grade_id: uuidSchema.nullable().optional(),
+    homework_submitted: z.boolean().nullable().optional(),
     notes: z.string().optional().nullable(),
     assessed_date: dateSchema,
   })

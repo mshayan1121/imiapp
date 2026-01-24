@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,19 +43,8 @@ import {
   getActiveTerm,
   submitGrades,
   checkExistingGrades,
-  deleteGrade,
 } from '../actions'
 import { LowPointBadge } from './lp-badge'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 const batchSchema = z.object({
   class_id: z.string().min(1, 'Class is required'),
@@ -65,6 +55,7 @@ const batchSchema = z.object({
   topic_id: z.string().min(1, 'Topic is required'),
   subtopic_id: z.string().min(1, 'Subtopic is required'),
   total_marks: z.number().min(1, 'Total marks must be at least 1'),
+  is_retake: z.boolean().optional().default(false),
 })
 
 type BatchFormValues = z.infer<typeof batchSchema>
@@ -82,14 +73,6 @@ export function BatchEntry() {
   const [students, setStudents] = useState<any[]>([])
   const [activeTerm, setActiveTerm] = useState<any>(null)
   const [studentMarks, setStudentMarks] = useState<Record<string, number>>({})
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [retakeDialogOpen, setRetakeDialogOpen] = useState(false)
-  const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([])
-  const [retakeData, setRetakeData] = useState<{
-    studentId: string
-    existingGrades: any[]
-    newGrade: any
-  } | null>(null)
 
   const form = useForm<BatchFormValues>({
     resolver: zodResolver(batchSchema),
@@ -98,6 +81,7 @@ export function BatchEntry() {
       work_subtype: 'worksheet',
       assessed_date: new Date(),
       total_marks: 10,
+      is_retake: false,
     },
   })
 
@@ -238,7 +222,6 @@ export function BatchEntry() {
           percentage: Math.round(percentage * 100) / 100,
           is_low_point: percentage < 80,
           assessed_date: format(values.assessed_date, 'yyyy-MM-dd'),
-          attempt_number: 1,
         }
       })
 
@@ -247,14 +230,12 @@ export function BatchEntry() {
       return
     }
 
-    setPendingSubmissions(entries)
-    setConfirmDialogOpen(true)
+    processSubmission(entries, values.is_retake)
   }
 
-  const processSubmission = async (entries: any[]) => {
+  const processSubmission = async (entries: any[], isRetake: boolean) => {
     setLoading(true)
     try {
-      // Check for existing grades for each entry
       const finalEntries = []
 
       for (const entry of entries) {
@@ -267,18 +248,33 @@ export function BatchEntry() {
           subtopic_id: entry.subtopic_id,
         })
 
-        if (existing && existing.length > 0) {
-          // Found existing grades, handle one by one
-          setRetakeData({
-            studentId: entry.student_id,
-            existingGrades: existing,
-            newGrade: entry,
+        if (isRetake) {
+          if (!existing || existing.length === 0) {
+            toast.error('No existing grade found. Uncheck retake or enter a first attempt.')
+            setLoading(false)
+            return
+          }
+          const maxAttempt = Math.max(...existing.map((g) => g.attempt_number))
+          finalEntries.push({
+            ...entry,
+            attempt_number: maxAttempt + 1,
+            is_retake: true,
+            is_reassigned: false,
+            original_grade_id: existing[0]?.id || null,
           })
-          setRetakeDialogOpen(true)
-          setLoading(false)
-          return // Stop and wait for user decision
         } else {
-          finalEntries.push(entry)
+          if (existing && existing.length > 0) {
+            toast.error('Existing grade found. Use the retake option to add another attempt.')
+            setLoading(false)
+            return
+          }
+          finalEntries.push({
+            ...entry,
+            attempt_number: 1,
+            is_retake: false,
+            is_reassigned: false,
+            original_grade_id: null,
+          })
         }
       }
 
@@ -292,43 +288,6 @@ export function BatchEntry() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit grades')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRetakeOption = async (option: 'replace' | 'retake') => {
-    if (!retakeData) return
-    setLoading(true)
-    setRetakeDialogOpen(false)
-
-    try {
-      const { newGrade, existingGrades } = retakeData
-
-      if (option === 'replace') {
-        // Delete all old attempts
-        for (const g of existingGrades) {
-          await deleteGrade(g.id)
-        }
-        await submitGrades([{ ...newGrade, attempt_number: 1 }])
-      } else {
-        // Add as retake with incremented attempt number
-        const maxAttempt = Math.max(...existingGrades.map((g) => g.attempt_number))
-        await submitGrades([{ ...newGrade, attempt_number: maxAttempt + 1 }])
-      }
-
-      // Continue with remaining pending submissions
-      const remaining = pendingSubmissions.filter((e) => e.student_id !== retakeData.studentId)
-      setPendingSubmissions(remaining)
-
-      if (remaining.length > 0) {
-        await processSubmission(remaining)
-      } else {
-        toast.success('Grade entry completed')
-        window.location.reload()
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Action failed')
     } finally {
       setLoading(false)
     }
@@ -495,6 +454,22 @@ export function BatchEntry() {
 
             <FormField
               control={form.control}
+              name="is_retake"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="font-normal">Mark all entries as retakes</FormLabel>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="topic_id"
               render={({ field }) => (
                 <FormItem>
@@ -633,70 +608,6 @@ export function BatchEntry() {
         </>
       )}
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Grade Submission</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are entering grades for{' '}
-              {subtopics.find((s) => s.id === form.getValues('subtopic_id'))?.name} for{' '}
-              {pendingSubmissions.length} students in{' '}
-              {classes.find((c) => c.id === form.getValues('class_id'))?.name}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmDialogOpen(false)
-                processSubmission(pendingSubmissions)
-              }}
-            >
-              Confirm & Save
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Retake Dialog */}
-      <AlertDialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Existing Grade Found</AlertDialogTitle>
-            <AlertDialogDescription>
-              {students.find((s) => s.student_id === retakeData?.studentId)?.students.name} already
-              has a grade for this subtopic this term.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel
-              disabled={loading}
-              onClick={() => {
-                setRetakeDialogOpen(false)
-                // Skip this student and continue with others if any
-                const remaining = pendingSubmissions.filter(
-                  (e) => e.student_id !== retakeData?.studentId,
-                )
-                setPendingSubmissions(remaining)
-                if (remaining.length > 0) processSubmission(remaining)
-              }}
-            >
-              Skip Student
-            </AlertDialogCancel>
-            <Button
-              variant="outline"
-              loading={loading}
-              onClick={() => handleRetakeOption('replace')}
-            >
-              Replace Old Grade
-            </Button>
-            <Button loading={loading} onClick={() => handleRetakeOption('retake')}>
-              Add as Retake
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   )
 }
