@@ -20,7 +20,7 @@ import { ImportProgress } from '@/app/admin/users/bulk-upload-teachers/_componen
 import { ParsedTeacher, TeacherImportStats, ImportResult } from '@/app/admin/users/bulk-upload-teachers/_types'
 import { checkExistingEmails, importTeacher, logImport } from '@/app/admin/users/bulk-upload-teachers/actions'
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
+// XLSX will be dynamically imported
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
@@ -116,7 +116,9 @@ export function BulkUploadDialog() {
     })
   }
 
-  const parseExcel = (file: File): Promise<any[]> => {
+  const parseExcel = async (file: File): Promise<any[]> => {
+    // Dynamically import xlsx only when needed
+    const XLSX = await import('xlsx')
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {

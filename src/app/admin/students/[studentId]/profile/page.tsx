@@ -40,7 +40,8 @@ import {
   Trash2,
   FileText,
   MapPin,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -68,18 +69,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table'
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell
-} from 'recharts'
+// Recharts will be dynamically imported
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -139,12 +129,20 @@ export default function StudentProfilePage() {
 
   const [error, setError] = useState<string | null>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [Recharts, setRecharts] = useState<any>(null)
 
   useEffect(() => {
     if (studentId) {
       loadData()
     }
   }, [studentId])
+
+  useEffect(() => {
+    // Dynamically load recharts only when component mounts
+    import('recharts').then((mod) => {
+      setRecharts(mod)
+    })
+  }, [])
 
   async function loadData() {
     if (!studentId) return
@@ -784,17 +782,21 @@ export default function StudentProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[300px]">
-              {timelineData.length > 1 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={timelineData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" fontSize={10} tickMargin={10} />
-                    <YAxis domain={[0, 100]} fontSize={10} />
-                    <Tooltip 
+              {!Recharts ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : timelineData.length > 1 ? (
+                <Recharts.ResponsiveContainer width="100%" height="100%">
+                  <Recharts.LineChart data={timelineData}>
+                    <Recharts.CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <Recharts.XAxis dataKey="date" fontSize={10} tickMargin={10} />
+                    <Recharts.YAxis domain={[0, 100]} fontSize={10} />
+                    <Recharts.Tooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       formatter={(value: number) => [`${value}%`, 'Grade']}
                     />
-                    <Line 
+                    <Recharts.Line 
                       type="monotone" 
                       dataKey="percentage" 
                       stroke="#2563eb" 
@@ -802,8 +804,8 @@ export default function StudentProfilePage() {
                       dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
                       activeDot={{ r: 6 }}
                     />
-                  </LineChart>
-                </ResponsiveContainer>
+                  </Recharts.LineChart>
+                </Recharts.ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground italic text-sm">
                   Not enough data to show trends
@@ -819,20 +821,24 @@ export default function StudentProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[300px]">
-              {barChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barChartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" domain={[0, 100]} fontSize={10} />
-                    <YAxis dataKey="name" type="category" width={120} fontSize={10} />
-                    <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                    <Bar dataKey="avg" radius={[0, 4, 4, 0]}>
+              {!Recharts ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : barChartData.length > 0 ? (
+                <Recharts.ResponsiveContainer width="100%" height="100%">
+                  <Recharts.BarChart data={barChartData} layout="vertical">
+                    <Recharts.CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <Recharts.XAxis type="number" domain={[0, 100]} fontSize={10} />
+                    <Recharts.YAxis dataKey="name" type="category" width={120} fontSize={10} />
+                    <Recharts.Tooltip cursor={{ fill: '#f1f5f9' }} />
+                    <Recharts.Bar dataKey="avg" radius={[0, 4, 4, 0]}>
                       {barChartData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.avg < 70 ? '#ef4444' : entry.avg < 80 ? '#f59e0b' : '#22c55e'} />
+                        <Recharts.Cell key={`cell-${index}`} fill={entry.avg < 70 ? '#ef4444' : entry.avg < 80 ? '#f59e0b' : '#22c55e'} />
                       ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                    </Recharts.Bar>
+                  </Recharts.BarChart>
+                </Recharts.ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground italic text-sm">
                   Not enough data to show course breakdown

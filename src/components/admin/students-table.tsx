@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useDebounce } from '@/hooks/use-debounce'
 import {
@@ -65,7 +65,7 @@ interface StudentsTableProps {
   currentPage?: number
 }
 
-export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: StudentsTableProps) {
+export const StudentsTable = memo(function StudentsTable({ data, pageCount = 1, currentPage = 1 }: StudentsTableProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -92,13 +92,13 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
     router.replace(`${pathname}?${params.toString()}`)
   }, [debouncedQuery, pathname, router]) // Removed searchParams from dep to avoid loop, but use current inside
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', newPage.toString())
     router.push(`${pathname}?${params.toString()}`)
-  }
+  }, [searchParams, pathname, router])
 
-  const columns: ColumnDef<Student>[] = [
+  const columns: ColumnDef<Student>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -211,7 +211,7 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
         )
       },
     },
-  ]
+  ], [setDeleteId])
 
   const table = useReactTable({
     data,
@@ -230,7 +230,7 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
     },
   })
 
-  async function handleDelete() {
+  const handleDelete = useCallback(async () => {
     if (!deleteId) return
 
     const result = await deleteStudent(deleteId)
@@ -240,9 +240,9 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
       toast.success('Student deleted successfully')
       setDeleteId(null)
     }
-  }
+  }, [deleteId])
 
-  async function handleBulkDelete() {
+  const handleBulkDelete = useCallback(async () => {
     const selectedIds = table.getFilteredSelectedRowModel().rows.map((row) => row.original.id)
     if (selectedIds.length === 0) return
 
@@ -256,7 +256,7 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
       setRowSelection({})
     }
     setIsBulkDeleting(false)
-  }
+  }, [table])
 
   return (
     <div>
@@ -378,4 +378,4 @@ export function StudentsTable({ data, pageCount = 1, currentPage = 1 }: Students
       </AlertDialog>
     </div>
   )
-}
+})

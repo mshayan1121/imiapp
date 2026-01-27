@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf'
+// jsPDF will be dynamically imported
 
 // PDF Constants
 const A4_WIDTH = 210 // mm
@@ -58,9 +58,17 @@ function formatDateTime(date: Date | string): string {
 }
 
 /**
+ * Get jsPDF dynamically
+ */
+async function getJsPDF() {
+  const jsPDF = (await import('jspdf')).default
+  return jsPDF
+}
+
+/**
  * Add header to PDF page
  */
-async function addHeader(doc: jsPDF, options: PDFOptions, pageNumber: number, totalPages: number) {
+async function addHeader(doc: any, options: PDFOptions, pageNumber: number, totalPages: number) {
   const logoData = await loadLogoImage()
   const currentY = MARGIN
 
@@ -117,7 +125,7 @@ async function addHeader(doc: jsPDF, options: PDFOptions, pageNumber: number, to
 /**
  * Add footer to PDF page
  */
-function addFooter(doc: jsPDF, pageNumber: number, totalPages: number) {
+function addFooter(doc: any, pageNumber: number, totalPages: number) {
   const footerY = A4_HEIGHT - MARGIN
 
   // Divider line
@@ -139,7 +147,7 @@ function addFooter(doc: jsPDF, pageNumber: number, totalPages: number) {
  * Add table to PDF
  */
 function addTable(
-  doc: jsPDF,
+  doc: any,
   headers: string[],
   rows: (string | number)[][],
   startY: number,
@@ -248,6 +256,7 @@ function addTable(
  * Generate Performance Report PDF
  */
 export async function generatePerformancePDF(data: any[], options: PDFOptions): Promise<void> {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -309,6 +318,7 @@ export async function generateGradeReportPDF(
   grades: any[],
   options: PDFOptions,
 ): Promise<void> {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -355,6 +365,7 @@ export async function generateGradeReportPDF(
  * Generate Flag Report PDF
  */
 export async function generateFlagReportPDF(flaggedStudents: any[], options: PDFOptions): Promise<void> {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -400,6 +411,7 @@ export async function generateFlagReportPDF(flaggedStudents: any[], options: PDF
  * Generate Summary Report PDF
  */
 export async function generateSummaryPDF(data: any[], options: PDFOptions): Promise<void> {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -449,7 +461,7 @@ export async function generateSummaryPDF(data: any[], options: PDFOptions): Prom
 /**
  * Add section title to PDF
  */
-function addSectionTitle(doc: jsPDF, title: string, currentY: number): number {
+function addSectionTitle(doc: any, title: string, currentY: number): number {
   const sectionSpacing = 10 // mm between sections
   
   // Add spacing before section (except first)
@@ -477,7 +489,7 @@ function addSectionTitle(doc: jsPDF, title: string, currentY: number): number {
 /**
  * Add key-value pair to PDF
  */
-function addKeyValue(doc: jsPDF, key: string, value: string, x: number, y: number, maxWidth?: number): number {
+function addKeyValue(doc: any, key: string, value: string, x: number, y: number, maxWidth?: number): number {
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(55, 65, 81) // Dark gray
@@ -505,6 +517,7 @@ export async function generateStudentProfilePDF(
   },
   options: PDFOptions,
 ): Promise<void> {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

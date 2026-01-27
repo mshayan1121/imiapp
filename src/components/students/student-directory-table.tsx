@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Fragment } from 'react'
+import { useState, Fragment, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ColumnDef,
@@ -60,7 +60,7 @@ interface StudentDirectoryTableProps {
   onPageChange: (page: number) => void
 }
 
-export function StudentDirectoryTable({
+export const StudentDirectoryTable = memo(function StudentDirectoryTable({
   data,
   role,
   onDelete,
@@ -76,11 +76,11 @@ export function StudentDirectoryTable({
   const [rowSelection, setRowSelection] = useState({})
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
 
-  const toggleRowExpanded = (id: string) => {
+  const toggleRowExpanded = useCallback((id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }))
-  }
+  }, [])
 
-  const columns: ColumnDef<StudentWithStats>[] = [
+  const columns: ColumnDef<StudentWithStats>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -302,7 +302,7 @@ export function StudentDirectoryTable({
         )
       },
     },
-  ]
+  ], [role, router, toggleRowExpanded, onAddGrade, onDelete])
 
   const table = useReactTable({
     data,
@@ -321,9 +321,9 @@ export function StudentDirectoryTable({
   const selectedCount = Object.keys(rowSelection).length
 
   // Get actual student IDs from selected rows
-  const getSelectedStudentIds = () => {
+  const getSelectedStudentIds = useCallback(() => {
     return table.getFilteredSelectedRowModel().rows.map((row) => row.original.id)
-  }
+  }, [table])
 
   return (
     <div className="space-y-4">
@@ -471,4 +471,4 @@ export function StudentDirectoryTable({
       </div>
     </div>
   )
-}
+})

@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { bulkUploadCurriculum } from '@/app/admin/curriculum/actions'
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
+// XLSX will be dynamically imported
 import { toast } from 'sonner'
 
 interface ParsedRow {
@@ -134,7 +134,9 @@ export function BulkUploadCurriculumDialog() {
     })
   }
 
-  const parseExcel = (file: File): Promise<any[]> => {
+  const parseExcel = async (file: File): Promise<any[]> => {
+    // Dynamically import xlsx only when needed
+    const XLSX = await import('xlsx')
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {

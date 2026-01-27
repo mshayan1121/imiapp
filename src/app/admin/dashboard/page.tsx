@@ -15,7 +15,9 @@ import { DashboardSkeleton } from './components/DashboardSkeleton'
 import { PageContainer } from '@/components/layout/page-container'
 import { Section } from '@/components/layout/section'
 
-export const dynamic = 'force-dynamic'
+// Use revalidation instead of force-dynamic for better performance
+// Data is cached via unstable_cache in actions with 60s revalidation
+export const revalidate = 60
 
 async function AdminDashboardContent() {
   const data = await getAdminDashboardData()

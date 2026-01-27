@@ -2,12 +2,16 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { trackWebVitals } from '@/lib/web-vitals'
 
 export function usePagePerformance() {
   const pathname = usePathname()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    // Track Web Vitals
+    trackWebVitals()
 
     // Track page load performance
     const startTime = performance.now()

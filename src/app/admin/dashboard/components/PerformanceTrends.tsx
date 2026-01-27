@@ -1,20 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Cell,
-  PieChart,
-  Pie,
-} from 'recharts'
+import { Loader2 } from 'lucide-react'
 
 interface PerformanceTrendsProps {
   data: {
@@ -25,6 +13,16 @@ interface PerformanceTrendsProps {
 }
 
 export function PerformanceTrends({ data }: PerformanceTrendsProps) {
+  const [Recharts, setRecharts] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    import('recharts').then((mod) => {
+      setRecharts(mod)
+      setIsLoading(false)
+    })
+  }, [])
+
   const hasData = data.performanceData.length > 0 || data.subjectData.length > 0 || data.gradeDistribution.length > 0
 
   if (!hasData) {
@@ -34,6 +32,35 @@ export function PerformanceTrends({ data }: PerformanceTrendsProps) {
       </Card>
     )
   }
+
+  if (isLoading || !Recharts) {
+    return (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="border-gray-200 shadow-sm">
+            <CardContent className="h-[250px] flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  const {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    Cell,
+    PieChart,
+    Pie,
+  } = Recharts
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">

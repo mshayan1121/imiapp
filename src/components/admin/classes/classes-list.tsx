@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { deleteClass } from '@/app/admin/classes/actions'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -54,20 +54,20 @@ interface ClassesListProps {
   classes: ClassItem[]
 }
 
-export function ClassesList({ classes }: ClassesListProps) {
+export const ClassesList = memo(function ClassesList({ classes }: ClassesListProps) {
   const [search, setSearch] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
-  const filteredClasses = classes.filter(
+  const filteredClasses = useMemo(() => classes.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.teacher?.full_name || c.teacher?.email || '').toLowerCase().includes(search.toLowerCase()),
-  )
+  ), [classes, search])
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteId) return
 
     setIsDeleting(true)
@@ -81,7 +81,7 @@ export function ClassesList({ classes }: ClassesListProps) {
       setDeleteId(null)
       router.refresh()
     }
-  }
+  }, [deleteId, router])
 
   if (classes.length === 0) {
     return (
@@ -214,4 +214,4 @@ export function ClassesList({ classes }: ClassesListProps) {
       </AlertDialog>
     </div>
   )
-}
+})

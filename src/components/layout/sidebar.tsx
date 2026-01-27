@@ -59,6 +59,7 @@ export function Sidebar({ role, userInitials, fullName, email }: SidebarProps) {
     { href: '/teacher/classes', icon: School, label: 'My Classes' },
     { href: '/teacher/grades/entry', icon: Edit, label: 'Enter Grades' },
     { href: '/teacher/grades', icon: ClipboardList, label: 'View Grades' },
+    { href: '/teacher/grades/gradebook', icon: BookOpen, label: 'Gradebook' },
     { href: '/teacher/progress', icon: TrendingUp, label: 'Student Progress' },
     { href: '/teacher/progress?status=flagged', icon: AlertTriangle, label: 'Flagged Students' },
     { href: '/teacher/reports', icon: FileText, label: 'Reports' },

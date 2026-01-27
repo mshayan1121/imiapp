@@ -62,13 +62,15 @@ export function InlineGradeRow({
 
   // Local state for inline editing
   const [marks, setMarks] = useState<string>(grade?.marksObtained?.toString() || '')
-  const [total, setTotal] = useState<string>(grade?.totalMarks?.toString() || '10')
-  const [workType, setWorkType] = useState<'classwork' | 'homework'>(grade?.workType || 'classwork')
-  const [workSubtype, setWorkSubtype] = useState<'worksheet' | 'pastpaper'>(
-    grade?.workSubtype || 'worksheet'
+  const [total, setTotal] = useState<string>(grade?.totalMarks?.toString() || '')
+  const [workType, setWorkType] = useState<'classwork' | 'homework' | ''>(
+    grade?.workType || ''
   )
-  const [assessedDate, setAssessedDate] = useState<Date>(
-    grade?.assessedDate ? new Date(grade.assessedDate) : new Date()
+  const [workSubtype, setWorkSubtype] = useState<'worksheet' | 'pastpaper' | ''>(
+    grade?.workSubtype || ''
+  )
+  const [assessedDate, setAssessedDate] = useState<Date | undefined>(
+    grade?.assessedDate ? new Date(grade.assessedDate) : undefined
   )
   const [homeworkSubmitted, setHomeworkSubmitted] = useState<boolean>(
     grade?.homeworkSubmitted ?? false
@@ -82,10 +84,10 @@ export function InlineGradeRow({
   // Update local state when grade changes from parent
   useEffect(() => {
     setMarks(grade?.marksObtained?.toString() || '')
-    setTotal(grade?.totalMarks?.toString() || '10')
-    setWorkType(grade?.workType || 'classwork')
-    setWorkSubtype(grade?.workSubtype || 'worksheet')
-    setAssessedDate(grade?.assessedDate ? new Date(grade.assessedDate) : new Date())
+    setTotal(grade?.totalMarks?.toString() || '')
+    setWorkType(grade?.workType || '')
+    setWorkSubtype(grade?.workSubtype || '')
+    setAssessedDate(grade?.assessedDate ? new Date(grade.assessedDate) : undefined)
     setHomeworkSubmitted(grade?.homeworkSubmitted ?? false)
     setHasChanges(false)
   }, [grade])
@@ -122,6 +124,11 @@ export function InlineGradeRow({
       return
     }
 
+    if (!workType || !workSubtype || !assessedDate) {
+      toast.error('Please fill in all required fields (Work Type, Subtype, and Date)')
+      return
+    }
+
     setIsSaving(true)
     try {
       if (grade) {
@@ -129,8 +136,8 @@ export function InlineGradeRow({
         const result = await updateGrade(grade.id, {
           marksObtained: parseInt(marks),
           totalMarks: parseInt(total),
-          workType,
-          workSubtype,
+          workType: workType as 'classwork' | 'homework',
+          workSubtype: workSubtype as 'worksheet' | 'pastpaper',
           assessedDate: format(assessedDate, 'yyyy-MM-dd'),
           homeworkSubmitted: workType === 'homework' ? homeworkSubmitted : undefined,
         })
@@ -153,8 +160,8 @@ export function InlineGradeRow({
           subtopicId: row.subtopicId,
           marksObtained: parseInt(marks),
           totalMarks: parseInt(total),
-          workType,
-          workSubtype,
+          workType: workType as 'classwork' | 'homework',
+          workSubtype: workSubtype as 'worksheet' | 'pastpaper',
           assessedDate: format(assessedDate, 'yyyy-MM-dd'),
           homeworkSubmitted: workType === 'homework' ? homeworkSubmitted : undefined,
         }
@@ -204,13 +211,13 @@ export function InlineGradeRow({
     setHasChanges(true)
   }
 
-  const handleWorkTypeChange = (value: 'classwork' | 'homework') => {
-    setWorkType(value)
+  const handleWorkTypeChange = (value: string) => {
+    setWorkType(value as 'classwork' | 'homework' | '')
     setHasChanges(true)
   }
 
-  const handleWorkSubtypeChange = (value: 'worksheet' | 'pastpaper') => {
-    setWorkSubtype(value)
+  const handleWorkSubtypeChange = (value: string) => {
+    setWorkSubtype(value as 'worksheet' | 'pastpaper' | '')
     setHasChanges(true)
   }
 
@@ -286,9 +293,9 @@ export function InlineGradeRow({
 
       {/* Work Type */}
       <td className="py-2 px-2">
-        <Select value={workType} onValueChange={handleWorkTypeChange} disabled={isSaving}>
+        <Select value={workType || undefined} onValueChange={handleWorkTypeChange} disabled={isSaving}>
           <SelectTrigger className="h-8 w-[110px] text-xs bg-white text-gray-900 border-gray-200">
-            <SelectValue />
+            <SelectValue placeholder="Select..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="classwork">Classwork</SelectItem>
@@ -299,9 +306,9 @@ export function InlineGradeRow({
 
       {/* Work Subtype */}
       <td className="py-2 px-2">
-        <Select value={workSubtype} onValueChange={handleWorkSubtypeChange} disabled={isSaving}>
+        <Select value={workSubtype || undefined} onValueChange={handleWorkSubtypeChange} disabled={isSaving}>
           <SelectTrigger className="h-8 w-[100px] text-xs bg-white text-gray-900 border-gray-200">
-            <SelectValue />
+            <SelectValue placeholder="Select..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="worksheet">Worksheet</SelectItem>
@@ -338,7 +345,7 @@ export function InlineGradeRow({
           onChange={(e) => handleTotalChange(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          placeholder="10"
+          placeholder={total ? undefined : "—"}
           className="h-8 w-16 text-center text-sm bg-white text-gray-900 border-gray-200"
           disabled={isSaving}
           min={1}
@@ -347,7 +354,7 @@ export function InlineGradeRow({
 
       {/* Date */}
       <td className="py-2 px-2">
-        <DatePicker date={assessedDate} setDate={handleDateChange} />
+        <DatePicker date={assessedDate} setDate={handleDateChange} placeholder="Select date" />
       </td>
 
       {/* Percentage */}

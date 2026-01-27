@@ -21,7 +21,7 @@ import { ImportProgress } from '@/app/admin/students/bulk-upload/_components/imp
 import { ParsedStudent, StudentImportStats, ImportResult } from '@/app/admin/students/bulk-upload/_types'
 import { checkExistingStudents, importStudent, logImport } from '@/app/admin/students/bulk-upload/actions'
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
+// XLSX will be dynamically imported
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/page-header'
 import { Section } from '@/components/layout/section'
@@ -113,7 +113,9 @@ export function BulkUploadStudentsDialog() {
     })
   }
 
-  const parseExcel = (file: File): Promise<any[]> => {
+  const parseExcel = async (file: File): Promise<any[]> => {
+    // Dynamically import xlsx only when needed
+    const XLSX = await import('xlsx')
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {

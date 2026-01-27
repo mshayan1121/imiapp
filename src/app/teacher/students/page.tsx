@@ -3,7 +3,9 @@ import { getDirectoryData, getFilterOptions } from '@/app/admin/students/directo
 import { TeacherDirectoryClient } from './teacher-directory-client'
 import { redirect } from 'next/navigation'
 
-export const dynamic = 'force-dynamic'
+// Use revalidation instead of force-dynamic for better performance
+// Data is cached via unstable_cache in actions
+export const revalidate = 30
 
 export default async function TeacherStudentsPage() {
   const supabase = await createClient()

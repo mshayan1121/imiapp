@@ -254,3 +254,79 @@ export async function getClassDetails(classId: string) {
 
   return { ...classData, students: normalizedStudents }
 }
+
+export async function getClassPerformanceData(classId: string) {
+  const supabase = await createClient()
+
+  // Get active term
+  const { data: activeTerm } = await supabase
+    .from('terms')
+    .select('id, name, is_active')
+    .eq('is_active', true)
+    .single()
+
+  // Get class data
+  const { data: classData, error: classError } = await supabase
+    .from('classes')
+    .select('id, name, teacher_id')
+    .eq('id', classId)
+    .single()
+
+  if (classError) throw classError
+
+  // Get teacher profile separately
+  let teacher = null
+  if (classData.teacher_id) {
+    const { data: teacherData } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', classData.teacher_id)
+      .single()
+    teacher = teacherData
+  }
+
+  // Get student count
+  const { count: studentCount } = await supabase
+    .from('class_students')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', classId)
+
+  // Get grades for active term if available
+  let grades: any[] = []
+  if (activeTerm) {
+    const { data: gradesData } = await supabase
+      .from('grades')
+      .select('percentage, is_low_point, student_id')
+      .eq('class_id', classId)
+      .eq('term_id', activeTerm.id)
+      .limit(1000)
+
+    grades = gradesData || []
+  }
+
+  // Calculate performance metrics
+  const avgPercentage = grades.length > 0
+    ? Math.round(grades.reduce((acc: number, g: any) => acc + Number(g.percentage), 0) / grades.length)
+    : 0
+
+  const lpCount = grades.filter((g: any) => g.is_low_point).length
+
+  // Calculate flags: count students with 3+ LPs
+  const studentLpCounts: Record<string, number> = {}
+  grades.forEach((g: any) => {
+    if (g.is_low_point) {
+      studentLpCounts[g.student_id] = (studentLpCounts[g.student_id] || 0) + 1
+    }
+  })
+
+  const flagCount = Object.values(studentLpCounts).filter((count) => count >= 3).length
+
+  return {
+    avgPercentage,
+    gradesEntered: grades.length,
+    lpCount,
+    flagCount,
+    studentCount: studentCount || 0,
+    teacher: teacher || null,
+  }
+}

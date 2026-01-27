@@ -1,7 +1,9 @@
 import { getDirectoryData, getFilterOptions } from './actions'
 import { AdminDirectoryClient } from './directory-client'
 
-export const dynamic = 'force-dynamic'
+// Use revalidation instead of force-dynamic for better performance
+// Data is cached via unstable_cache in actions
+export const revalidate = 30
 
 export default async function AdminStudentDirectoryPage() {
   const initialFilters = {
