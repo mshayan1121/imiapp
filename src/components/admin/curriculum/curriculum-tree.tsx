@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, ChevronDown, ChevronRight, GraduationCap, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -32,7 +32,8 @@ export function CurriculumTree({
   onDelete,
 }: CurriculumTreeProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [expandedIds, setExpandedIds] = useState<string[]>([])
+  const isManualExpandingRef = useRef(false)
 
   // Transform flat data into recursive structure
   const treeData = useMemo(() => {
@@ -118,46 +119,55 @@ export function CurriculumTree({
 
   // Auto-expand on search
   useEffect(() => {
-    if (searchTerm) {
-      const newExpanded = new Set<string>()
+    if (searchTerm && !isManualExpandingRef.current) {
+      const newExpanded: string[] = []
       const addExpanded = (nodes: CurriculumItem[]) => {
         nodes.forEach((node) => {
           if (node.children && node.children.length > 0) {
-            newExpanded.add(node.id)
+            newExpanded.push(node.id)
             addExpanded(node.children)
           }
         })
       }
       addExpanded(filteredTree)
-      setExpandedIds(newExpanded)
+      setExpandedIds([...newExpanded])
     }
   }, [searchTerm, filteredTree])
 
   const toggleExpand = (id: string) => {
-    const newExpanded = new Set(expandedIds)
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id)
-    } else {
-      newExpanded.add(id)
-    }
-    setExpandedIds(newExpanded)
+    setExpandedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((expandedId) => expandedId !== id)
+      } else {
+        return [...prev, id]
+      }
+    })
   }
 
   const expandAll = () => {
-    const allIds = new Set<string>()
+    isManualExpandingRef.current = true
+    const allIds: string[] = []
     const addAll = (nodes: CurriculumItem[]) => {
       nodes.forEach((node) => {
         if (node.children && node.children.length > 0) {
-          allIds.add(node.id)
+          allIds.push(node.id)
           addAll(node.children)
         }
       })
     }
+    // Always expand all nodes from the full treeData
     addAll(treeData)
-    setExpandedIds(allIds)
+    // Set the expanded IDs array
+    setExpandedIds([...allIds])
+    // Reset the flag after state update completes
+    setTimeout(() => {
+      isManualExpandingRef.current = false
+    }, 200)
   }
 
-  const collapseAll = () => setExpandedIds(new Set())
+  const collapseAll = () => {
+    setExpandedIds([])
+  }
 
   const renderTree = (nodes: CurriculumItem[], level = 0) => {
     return nodes.map((node) => (
@@ -166,7 +176,7 @@ export function CurriculumTree({
         item={node}
         level={level}
         isSelected={false}
-        isExpanded={expandedIds.has(node.id)}
+        isExpanded={expandedIds.includes(node.id)}
         onSelect={() => {}}
         onToggle={toggleExpand}
         onAdd={onAdd}

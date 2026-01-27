@@ -43,11 +43,59 @@ export async function createQualification(formData: FormData) {
 export async function deleteQualification(id: string) {
   try {
     const supabase = await checkAdmin()
+    
+    // Get all courses associated with this qualification
+    const { data: courses, error: coursesError } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('qualification_id', id)
+
+    if (coursesError) {
+      console.error('Database Error checking courses:', coursesError)
+      return { error: 'Failed to check for associated courses. Please try again.' }
+    }
+
+    if (courses && courses.length > 0) {
+      const courseIds = courses.map(c => c.id)
+      
+      // First, remove course references from class_students (set to null)
+      // This is safe because course_id is nullable
+      const { error: updateClassStudentsError } = await supabase
+        .from('class_students')
+        .update({ course_id: null })
+        .in('course_id', courseIds)
+
+      if (updateClassStudentsError) {
+        console.error('Database Error updating class_students:', updateClassStudentsError)
+        // Don't fail here - try to continue with course deletion
+      }
+
+      // Delete associated courses (this will cascade delete grades due to FK constraint in grades table)
+      const { error: deleteCoursesError } = await supabase
+        .from('courses')
+        .delete()
+        .in('id', courseIds)
+
+      if (deleteCoursesError) {
+        console.error('Database Error deleting courses:', deleteCoursesError)
+        // Check if it's a foreign key constraint error
+        if (deleteCoursesError.code === '23503' || deleteCoursesError.message.includes('foreign key')) {
+          return { error: 'Cannot delete qualification. Some courses are still referenced by student enrollments or grades. Please remove those references first.' }
+        }
+        return { error: `Failed to delete associated courses: ${deleteCoursesError.message}` }
+      }
+    }
+
+    // Now delete the qualification (this will cascade delete boards, subjects, topics, subtopics)
     const { error } = await supabase.from('qualifications').delete().eq('id', id)
 
     if (error) {
       console.error('Database Error:', error)
-      return { error: 'Failed to delete qualification. Please try again.' }
+      // Check if it's a foreign key constraint error
+      if (error.code === '23503' || error.message.includes('foreign key')) {
+        return { error: 'Cannot delete qualification. It is still referenced by other records. Please delete all associated data first.' }
+      }
+      return { error: `Failed to delete qualification: ${error.message}` }
     }
 
     revalidatePath('/admin/curriculum')

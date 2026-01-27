@@ -14,11 +14,11 @@ export default async function ManageCurriculumPage() {
     { data: subtopics },
     { data: coursesData },
   ] = await Promise.all([
-    supabase.from('qualifications').select('id, name').order('name').limit(50),
-    supabase.from('boards').select('id, name').order('name').limit(50),
-    supabase.from('subjects').select('id, name, board_id').order('name').limit(50),
-    supabase.from('topics').select('id, name, subject_id').order('name').limit(50),
-    supabase.from('subtopics').select('id, name, topic_id').order('name').limit(50),
+    supabase.from('qualifications').select('id, name, created_at').order('name').limit(50),
+    supabase.from('boards').select('id, name, qualification_id, created_at').order('name').limit(50),
+    supabase.from('subjects').select('id, name, board_id, created_at').order('name').limit(50),
+    supabase.from('topics').select('id, name, subject_id, created_at').order('name').limit(50),
+    supabase.from('subtopics').select('id, name, topic_id, created_at').order('name').limit(50),
     supabase
       .from('courses')
       .select(
